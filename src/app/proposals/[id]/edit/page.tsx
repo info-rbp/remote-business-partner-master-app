@@ -1,5 +1,5 @@
 
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 import { updateProposal } from "@/app/proposals/actions";
 
 export default async function EditProposalPage({ params }: { params: { id: string } }) {

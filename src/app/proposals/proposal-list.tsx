@@ -18,7 +18,6 @@ export default function ProposalList({ initialProposals }: { initialProposals: P
     if (statusFilter === 'all') {
       return initialProposals;
     }
-
     return initialProposals.filter((p) => p.status === statusFilter);
   }, [initialProposals, statusFilter]);
 
