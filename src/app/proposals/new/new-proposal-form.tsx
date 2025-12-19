@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { httpsCallable } from 'firebase/functions';
-import { auth, functions, getAuthTokens } from '@/lib/firebase-client';
+import { getAuthTokens, getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase-client';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import AuthForm from '@/app/components/auth-form';
 
@@ -11,6 +11,8 @@ type ProposalAction = (formData: FormData) => Promise<void>;
 
 export default function NewProposalForm({ createProposalAction }: { createProposalAction: ProposalAction }) {
   const router = useRouter();
+  const auth = getFirebaseAuth();
+  const functions = getFirebaseFunctions();
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<{ idToken: string; appCheckToken: string } | null>(null);
   const [title, setTitle] = useState('');

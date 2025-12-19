@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth, getAuthTokens } from '@/lib/firebase-client';
+import { getAuthTokens, getFirebaseAuth } from '@/lib/firebase-client';
 import AuthForm from '@/app/components/auth-form';
 
 type UpdateAction = (id: string, formData: FormData) => Promise<void>;
@@ -18,6 +18,7 @@ export default function EditProposalForm({
   content: string;
   updateProposalAction: UpdateAction;
 }) {
+  const auth = getFirebaseAuth();
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<{ idToken: string; appCheckToken: string } | null>(null);
   const [pendingAction, startAction] = useTransition();
