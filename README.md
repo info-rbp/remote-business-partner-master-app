@@ -48,3 +48,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment configuration
+
+The client-side Firebase SDK is configured via a JSON string. Provide one of the following variables in your environment:
+
+- `NEXT_PUBLIC_FIREBASE_CONFIG` (preferred for Next.js environments)
+- `NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG`
+- `FIREBASE_WEBAPP_CONFIG`
+
+Each should contain the Firebase web app config JSON (e.g. `{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}`).
+
+To enable Firebase App Check for callable functions, also set one of:
+
+- `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY`
+- `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY`
+
+Server-side functions that call Firebase Admin require `FIREBASE_SERVICE_ACCOUNT` to hold the service account JSON string.
