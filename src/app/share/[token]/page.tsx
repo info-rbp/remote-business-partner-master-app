@@ -1,11 +1,55 @@
+import { db } from "@/lib/firebase-admin";
 
-export default function SharePage({ params }: { params: { token: string } }) {
+type Proposal = { title: string; content: string };
+type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp };
+
+function ShareNotFound({ message }: { message: string }) {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="border rounded-lg shadow-sm p-6 bg-white">
-          <h1 className="text-2xl font-bold mb-4">Proposal {params.token}</h1>
-          <p className="text-gray-700">This is the content for proposal {params.token}.</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-800">Link Unavailable</h1>
+        <p className="text-gray-600 mt-2">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+export default async function SharePage({ params }: { params: { token: string } }) {
+  const shareSnapshot = await db.collection("proposalShares").doc(params.token).get();
+
+  if (!shareSnapshot.exists) {
+    return <ShareNotFound message="The share link you followed is invalid or has been removed." />;
+  }
+
+  const shareData = shareSnapshot.data() as ProposalShare | undefined;
+  const expiresAt = shareData?.expiresAt?.toDate();
+  const now = new Date();
+
+  if (!shareData?.proposalId || !expiresAt || expiresAt.getTime() <= now.getTime()) {
+    return <ShareNotFound message="This share link has expired or is no longer available." />;
+  }
+
+  const proposalSnapshot = await db.collection("proposals").doc(shareData.proposalId).get();
+
+  if (!proposalSnapshot.exists) {
+    return <ShareNotFound message="The proposal associated with this share link could not be found." />;
+  }
+
+  const proposal = proposalSnapshot.data() as Proposal | undefined;
+
+  if (!proposal) {
+    return <ShareNotFound message="The proposal associated with this share link could not be found." />;
+  }
+
+  return (
+    <div className="bg-gray-100 min-h-screen">
+      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="bg-white rounded-lg shadow-md p-6 lg:p-8">
+          <header className="mb-8 border-b pb-4">
+            <h1 className="text-4xl font-bold text-gray-900">{proposal.title}</h1>
+            <p className="text-sm text-gray-500 mt-1">Link valid until {expiresAt.toLocaleString()}</p>
+          </header>
+          <div className="prose prose-lg max-w-none text-gray-800">{proposal.content}</div>
         </div>
       </main>
     </div>
