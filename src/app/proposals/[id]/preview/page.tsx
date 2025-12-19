@@ -5,6 +5,7 @@ import admin from "firebase-admin";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { randomBytes } from "node:crypto";
+import { DocumentVault } from "../../../components/document-vault";
 
 type Proposal = { id: string; title: string; content: string };
 type ProposalShare = {
@@ -17,12 +18,12 @@ type ProposalShare = {
 const SHARE_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 async function getProposal(proposalId: string): Promise<Proposal | null> {
-  const snapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposals").doc(proposalId).get().catch((error) => {
-    console.warn('Failed to load proposal for preview.', { error, proposalId });
+  const snapshot = await db.collection("proposals").doc(proposalId).get().catch((error) => {
+    console.warn("Unable to load proposal.", error);
     return null;
   });
 
-  if (!snapshot?.exists) {
+  if (!snapshot || !snapshot.exists) {
     return null;
   }
 
@@ -33,8 +34,8 @@ async function getProposal(proposalId: string): Promise<Proposal | null> {
 }
 
 async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
-  const existingSharesSnapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposalShares").where("proposalId", "==", proposalId).get().catch((error) => {
-    console.warn('Failed to load existing proposal shares.', { error, proposalId });
+  const existingSharesSnapshot = await db.collection("proposalShares").where("proposalId", "==", proposalId).get().catch((error) => {
+    console.warn("Unable to load existing share tokens.", error);
     return null;
   });
   const now = Date.now();
@@ -59,8 +60,8 @@ async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
   const createdAt = admin.firestore.Timestamp.fromMillis(now);
   const newShare: ProposalShare = { proposalId, token, expiresAt, createdAt };
 
-  await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposalShares").doc(token).set(newShare).catch((error) => {
-    console.warn('Failed to write new proposal share.', { error, proposalId, token });
+  await db.collection("proposalShares").doc(token).set(newShare).catch((error) => {
+    console.warn("Unable to persist share token; continuing with ephemeral token.", error);
   });
 
   return newShare;
@@ -71,6 +72,7 @@ export default async function PreviewProposalPage({ params }: { params: { id: st
   const headerValues = await headers();
   const host = headerValues.get("host");
   const forwardedProtocol = headerValues.get("x-forwarded-proto");
+  const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? "demo-org";
 
   if (!proposal) {
     return (
@@ -117,6 +119,15 @@ export default async function PreviewProposalPage({ params }: { params: { id: st
         <h2 className="text-2xl font-bold mb-4">{proposal.title}</h2>
         <p className="text-gray-400">{proposal.content}</p>
       </div>
+      <DocumentVault
+        orgId={orgId}
+        entityType="proposal"
+        entityId={proposal.id}
+        title="Proposal Attachments"
+        allowUploads
+        defaultVisibility="internal"
+        defaultCategory="attachments"
+      />
     </div>
   );
 }

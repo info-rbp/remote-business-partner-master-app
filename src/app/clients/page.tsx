@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
+import { DocumentVault } from '../components/document-vault';
 
 interface Client {
   id: number;
@@ -30,6 +31,13 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string>(
+    initialClients[0]?.id.toString() ?? '',
+  );
+  const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo-org';
+  const nextClientId = useRef(
+    Math.max(0, ...initialClients.map((client) => client.id)) + 1,
+  );
 
   const openModal = (client: Client | null = null) => {
     setSelectedClient(client);
@@ -43,15 +51,33 @@ export default function ClientsPage() {
 
   const handleSave = (client: Omit<Client, 'id'> & { id: number | null }) => {
     if (client.id) {
-      setClients(clients.map((c) => (c.id === client.id ? (client as Client) : c)));
+      const updated = clients.map((c) => (c.id === client.id ? (client as Client) : c));
+      setClients(updated);
+      ensureSelectedClient(updated);
     } else {
-      setClients([...clients, { ...client, id: Date.now() }]);
+      const newId = nextClientId.current++;
+      const nextClient = { ...client, id: newId };
+      const updated = [...clients, nextClient];
+      setClients(updated);
+      setSelectedClientId(nextClient.id.toString());
     }
     closeModal();
   };
 
   const handleDelete = (client: Client) => {
-    setClients(clients.filter((c) => c.id !== client.id));
+    const updated = clients.filter((c) => c.id !== client.id);
+    setClients(updated);
+    ensureSelectedClient(updated);
+  };
+
+  const ensureSelectedClient = (nextClients: Client[]) => {
+    if (!nextClients.find((client) => client.id.toString() === selectedClientId)) {
+      setSelectedClientId(nextClients[0]?.id.toString() ?? '');
+    }
+  };
+
+  const handleSelectForVault = (client: Client) => {
+    setSelectedClientId(client.id.toString());
   };
 
   return (
@@ -90,9 +116,15 @@ export default function ClientsPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(client)}
-                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mr-2"
                   >
                     Delete
+                  </button>
+                  <button
+                    onClick={() => handleSelectForVault(client)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
+                  >
+                    Open Vault
                   </button>
                 </td>
               </tr>
@@ -100,6 +132,20 @@ export default function ClientsPage() {
           </tbody>
         </table>
       </div>
+      {selectedClientId ? (
+        <DocumentVault
+          orgId={orgId}
+          entityType="client"
+          entityId={selectedClientId}
+          clientId={selectedClientId}
+          title="Client Document Vault"
+          allowUploads
+          defaultVisibility="internal"
+          defaultCategory="contracts"
+        />
+      ) : (
+        <div className="mt-6 text-gray-400">Select a client to manage their vault.</div>
+      )}
       {isModalOpen && (
         <ClientModal
           client={selectedClient}

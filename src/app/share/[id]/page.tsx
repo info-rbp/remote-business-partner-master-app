@@ -3,12 +3,12 @@ import { db } from "@/lib/db";
 import { DEFAULT_ORG_ID } from "@/lib/org";
 
 export default async function ShareProposalPage({ params }: { params: { id: string } }) {
-  const proposalSnapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposals").doc(params.id).get().catch((error) => {
-    console.warn('Failed to load proposal for share view.', { error, proposalId: params.id });
+  const proposalSnapshot = await db.collection("proposals").doc(params.id).get().catch((error) => {
+    console.warn("Unable to load shared proposal.", error);
     return null;
   });
 
-  if (!proposalSnapshot?.exists) {
+  if (!proposalSnapshot || !proposalSnapshot.exists) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-center">

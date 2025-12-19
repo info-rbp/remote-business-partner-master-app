@@ -35,10 +35,12 @@
       ]
     },
     {
-      "collectionGroup": "auditLogs",
+      "collectionGroup": "files",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "actor.uid", "order": "ASCENDING" },
+        { "fieldPath": "entityType", "order": "ASCENDING" },
+        { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }

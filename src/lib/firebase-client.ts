@@ -47,18 +47,14 @@ function parseFirebaseConfig(): FirebaseOptions {
     .map(([key]) => key);
 
   if (missingKeys.length > 0) {
-    console.warn(
-      `Missing Firebase configuration values: ${missingKeys.join(', ')}. ` +
-      'Falling back to a local-safe configuration; provide full NEXT_PUBLIC_FIREBASE_CONFIG for production.',
-    );
+    console.warn(`Missing Firebase configuration values: ${missingKeys.join(', ')}. Falling back to a local demo configuration.`);
     cachedConfig = {
       apiKey: 'demo-api-key',
-      authDomain: 'localhost',
-      projectId: configFromEnv.projectId ?? 'demo-project',
-      storageBucket: configFromEnv.storageBucket ?? 'demo-project.appspot.com',
-      messagingSenderId: configFromEnv.messagingSenderId ?? 'demo-sender',
-      appId: configFromEnv.appId ?? 'demo-app-id',
-      ...(configFromEnv.measurementId ? { measurementId: configFromEnv.measurementId } : {}),
+      authDomain: 'demo.firebaseapp.com',
+      projectId: 'demo-project',
+      storageBucket: 'demo-project.appspot.com',
+      messagingSenderId: 'demo-sender',
+      appId: 'demo-app',
     };
     return cachedConfig;
   }

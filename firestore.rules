@@ -3,42 +3,81 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Get a user's role within an organization
-    function getRole(orgId) {
-      return get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role;
+    function memberDoc(orgId) {
+      return request.auth != null
+        ? get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid))
+        : null;
+    }
+
+    function memberRole(orgId) {
+      let member = memberDoc(orgId);
+      return member != null && member.exists() ? member.data.role : null;
+    }
+
+    function isAdmin(orgId) {
+      return memberRole(orgId) == 'admin';
+    }
+
+    function isStaff(orgId) {
+      let role = memberRole(orgId);
+      return role == 'admin' || role == 'staff';
+    }
+
+    function isClient(orgId) {
+      return memberRole(orgId) == 'client';
+    }
+
+    function memberClientId(orgId) {
+      let member = memberDoc(orgId);
+      return member != null && member.exists() ? member.data.clientId : null;
     }
 
     match /orgs/{orgId} {
       // Org-level access: Only admins and staff can read org details
-      allow read: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
-      allow write: if request.auth != null && getRole(orgId) == 'admin'; // Only admins can modify org details
+      allow read: if request.auth != null && isStaff(orgId);
+      allow write: if request.auth != null && isAdmin(orgId); // Only admins can modify org details
 
       // Members: Admins can manage members, staff can read the list
       match /members/{userId} {
-        allow read: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
-        allow write: if request.auth != null && getRole(orgId) == 'admin';
+        allow read: if request.auth != null && isStaff(orgId);
+        allow write: if request.auth != null && isAdmin(orgId);
       }
 
       // Clients: Admins and staff can manage clients
       match /clients/{clientId} {
-        allow read, write: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+        allow read, write: if request.auth != null && isStaff(orgId);
+      }
+
+      // File registry for Storage objects
+      match /files/{fileId} {
+        function canClientReadFile() {
+          return isClient(orgId)
+            && resource != null
+            && resource.data.visibility == 'client'
+            && resource.data.clientId != null
+            && memberClientId(orgId) == resource.data.clientId;
+        }
+
+        allow create: if request.auth != null && isStaff(orgId);
+        allow read: if request.auth != null && (isStaff(orgId) || canClientReadFile());
+        allow update, delete: if request.auth != null && isStaff(orgId);
       }
 
       // Proposals: Granular access based on roles
       match /proposals/{proposalId} {
         // Public read access via a share token
         allow get: if resource.data.shareToken != null && resource.data.shareToken == request.query.get('token');
-        
+
         // Admins and staff have full access
-        allow read, write: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+        allow read, write: if request.auth != null && isStaff(orgId);
 
         // Clients can only read proposals where they are the client
-        allow read: if request.auth != null && getRole(orgId) == 'client' && resource.data.clientId == request.auth.uid;
+        allow read: if request.auth != null && isClient(orgId) && resource.data.clientId == memberClientId(orgId);
       }
 
       // Settings: Only admins can manage settings
       match /settings/{doc=**} {
-        allow read, write: if request.auth != null && getRole(orgId) == 'admin';
+        allow read, write: if request.auth != null && isAdmin(orgId);
       }
 
       // Audit logs: append-only, visible to staff and admins

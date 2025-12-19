@@ -1,3 +1,3 @@
-import 'server-only';
+import { getFirestore } from './firebase-admin';
 
-export { db, getFirestore, getFirebaseAdminApp } from './firebase-admin';
+export const db = getFirestore();

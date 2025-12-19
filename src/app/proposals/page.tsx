@@ -5,11 +5,11 @@ import ProposalList from './proposal-list';
 
 async function getProposals() {
   try {
-    const snapshot = await db.collection('orgs').doc(DEFAULT_ORG_ID).collection('proposals').get();
+    const snapshot = await db.collection('proposals').get();
     const proposals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return proposals as { id: string; title: string; status: string }[];
   } catch (error) {
-    console.warn('Unable to load proposals from Firestore; returning an empty list.', { error });
+    console.warn('Unable to load proposals; returning empty list.', error);
     return [];
   }
 }
