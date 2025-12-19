@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "dealflow-ai-agency"
+    "default": "dealflow-ai-agency-dev",
+    "dev": "dealflow-ai-agency-dev",
+    "prod": "dealflow-ai-agency"
   }
 }

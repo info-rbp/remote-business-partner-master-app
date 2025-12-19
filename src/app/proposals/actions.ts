@@ -2,6 +2,25 @@
 
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+
+async function verifyTokens(formData: FormData) {
+  const idToken = formData.get('idToken');
+  const appCheckToken = formData.get('appCheckToken');
+
+  if (!idToken || typeof idToken !== 'string') {
+    throw new Error('Missing id token for proposal mutation.');
+  }
+
+  const app = getFirebaseAdminApp();
+
+  if (appCheckToken && typeof appCheckToken === 'string') {
+    await app.appCheck().verifyToken(appCheckToken);
+  }
+
+  const decoded = await app.auth().verifyIdToken(idToken);
+  return decoded.uid;
+}
 
 export async function createProposal(formData: FormData) {
   const uid = await verifyTokens(formData);

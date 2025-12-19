@@ -59,7 +59,7 @@ async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
 
 export default async function PreviewProposalPage({ params }: { params: { id: string } }) {
   const proposal = await getProposal(params.id);
-  const headerValues = headers();
+  const headerValues = await headers();
   const host = headerValues.get("host");
   const forwardedProtocol = headerValues.get("x-forwarded-proto");
 

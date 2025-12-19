@@ -1,6 +1,6 @@
 {
   "apphosting": {
-    "backendId": "rbp-dev-backend",
+    "backendId": "rbp-prod-backend",
     "rootDir": ".",
     "ignore": [
       "node_modules",

@@ -19,9 +19,17 @@ function parseFirebaseConfig(): FirebaseOptions {
     return cachedConfig;
   }
 
+  const appEnv = (process.env.APP_ENV ?? 'development').toLowerCase();
+
   const firebaseConfigString = process.env.FIREBASE_WEBAPP_CONFIG
     ?? process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG
     ?? process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
+
+  if (!firebaseConfigString && appEnv === 'production' && process.env.ALLOW_PROD_LOCAL !== 'true') {
+    throw new Error(
+      'APP_ENV is set to production without FIREBASE_WEBAPP_CONFIG. App Hosting injects FIREBASE_WEBAPP_CONFIG automatically; for local production testing set ALLOW_PROD_LOCAL=true explicitly.',
+    );
+  }
 
   if (firebaseConfigString) {
     try {
@@ -42,12 +50,20 @@ function parseFirebaseConfig(): FirebaseOptions {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   };
 
+  if (appEnv === 'development' && !configFromEnv.projectId) {
+    throw new Error(
+      'APP_ENV is development but NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing. Copy .env.example to .env.local and provide your dev Firebase web app settings.',
+    );
+  }
+
   const missingKeys = Object.entries(configFromEnv)
     .filter(([key, value]) => key !== 'measurementId' && !value)
     .map(([key]) => key);
 
   if (missingKeys.length > 0) {
-    throw new Error(`Missing Firebase configuration values: ${missingKeys.join(', ')}.`);
+    throw new Error(
+      `Missing Firebase configuration values: ${missingKeys.join(', ')}. Either rely on FIREBASE_WEBAPP_CONFIG from App Hosting or set the NEXT_PUBLIC_* variables locally.`,
+    );
   }
 
   cachedConfig = {
