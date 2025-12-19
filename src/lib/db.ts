@@ -1,3 +1,3 @@
-import { getFirestore } from './firebase-admin';
+import { admin } from "@/lib/firebase-admin";
 
-export const db = getFirestore();
+export const db = admin.db;

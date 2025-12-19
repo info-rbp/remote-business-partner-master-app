@@ -1,5 +1,5 @@
 import { getStorage } from 'firebase-admin/storage';
-import { getFirestore, getFirebaseAdminApp } from './firebase-admin';
+import { getFirebaseAdminApp, admin } from './firebase-admin';
 
 export interface SignedUrlOptions {
   storagePath: string;
@@ -8,7 +8,7 @@ export interface SignedUrlOptions {
 }
 
 export async function getFileRecord(orgId: string, fileId: string) {
-  const snapshot = await getFirestore().doc(`orgs/${orgId}/files/${fileId}`).get();
+  const snapshot = await admin.db.doc(`orgs/${orgId}/files/${fileId}`).get();
   return snapshot.exists ? snapshot.data() : null;
 }
 

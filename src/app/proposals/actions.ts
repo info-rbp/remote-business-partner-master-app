@@ -1,8 +1,7 @@
-'use server';
 
-import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+import { redirect } from "next/navigation";
 
 async function verifyTokens(formData: FormData) {
   const idToken = formData.get('idToken');
@@ -12,9 +11,7 @@ async function verifyTokens(formData: FormData) {
   }
 
   try {
-    const app = getFirebaseAdminApp();
-    const auth = app.auth();
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await admin.auth.verifyIdToken(idToken);
     return decoded.uid;
   } catch (error) {
     console.warn('Failed to verify ID token; falling back to unsigned uid for local development.', error);
