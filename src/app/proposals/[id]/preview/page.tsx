@@ -1,6 +1,9 @@
 
 import { db } from "@/lib/db";
+import admin from "firebase-admin";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { randomBytes } from "node:crypto";
 
 type Proposal = { id: string; title: string; content: string };
 type ProposalShare = {
@@ -56,6 +59,9 @@ async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
 
 export default async function PreviewProposalPage({ params }: { params: { id: string } }) {
   const proposal = await getProposal(params.id);
+  const headerValues = headers();
+  const host = headerValues.get("host");
+  const forwardedProtocol = headerValues.get("x-forwarded-proto");
 
   if (!proposal) {
     return (
@@ -69,6 +75,8 @@ export default async function PreviewProposalPage({ params }: { params: { id: st
   }
 
   const share = await getActiveShareToken(params.id);
+  const sharePath = `/share/${share.token}`;
+  const shareUrl = host ? `${forwardedProtocol ?? "http"}://${host}${sharePath}` : sharePath;
 
   return (
     <div>
@@ -81,9 +89,15 @@ export default async function PreviewProposalPage({ params }: { params: { id: st
               {share.expiresAt?.toDate().toLocaleString() ?? "N/A"}
             </span>
           </p>
+          <p className="text-sm text-gray-400">
+            Share link:{" "}
+            <Link href={sharePath} className="text-blue-400 underline break-all" prefetch={false}>
+              {shareUrl}
+            </Link>
+          </p>
         </div>
         <Link
-          href={`/share/${share.token}`}
+          href={sharePath}
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           prefetch={false}
         >
