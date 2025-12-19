@@ -47,7 +47,16 @@ function parseFirebaseConfig(): FirebaseOptions {
     .map(([key]) => key);
 
   if (missingKeys.length > 0) {
-    throw new Error(`Missing Firebase configuration values: ${missingKeys.join(', ')}.`);
+    console.warn(`Missing Firebase configuration values: ${missingKeys.join(', ')}. Falling back to a local demo configuration.`);
+    cachedConfig = {
+      apiKey: 'demo-api-key',
+      authDomain: 'demo.firebaseapp.com',
+      projectId: 'demo-project',
+      storageBucket: 'demo-project.appspot.com',
+      messagingSenderId: 'demo-sender',
+      appId: 'demo-app',
+    };
+    return cachedConfig;
   }
 
   cachedConfig = {

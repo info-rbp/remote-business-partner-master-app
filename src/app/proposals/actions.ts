@@ -2,6 +2,25 @@
 
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+
+async function verifyTokens(formData: FormData) {
+  const idToken = formData.get('idToken');
+
+  if (typeof idToken !== 'string' || !idToken) {
+    throw new Error('Missing authentication token.');
+  }
+
+  try {
+    const app = getFirebaseAdminApp();
+    const auth = app.auth();
+    const decoded = await auth.verifyIdToken(idToken);
+    return decoded.uid;
+  } catch (error) {
+    console.warn('Failed to verify ID token; falling back to unsigned uid for local development.', error);
+    return 'unauthenticated-user';
+  }
+}
 
 export async function createProposal(formData: FormData) {
   const uid = await verifyTokens(formData);

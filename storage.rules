@@ -1,0 +1,153 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function hasAuth() {
+      return request.auth != null;
+    }
+
+    function member(orgId) {
+      return hasAuth()
+        ? firestore.get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid))
+        : null;
+    }
+
+    function memberExists(memberDoc) {
+      return memberDoc != null && memberDoc.exists();
+    }
+
+    function memberRole(memberDoc) {
+      return memberExists(memberDoc) ? memberDoc.data.role : null;
+    }
+
+    function isStaff(memberDoc) {
+      let role = memberRole(memberDoc);
+      return role == 'admin' || role == 'staff';
+    }
+
+    function isClient(memberDoc) {
+      return memberRole(memberDoc) == 'client';
+    }
+
+    function memberClientId(memberDoc) {
+      return memberExists(memberDoc) ? memberDoc.data.clientId : null;
+    }
+
+    function isValidDateSegments(year, month) {
+      return year.matches('^[0-9]{4}$') && month.matches('^[0-9]{2}$');
+    }
+
+    function isValidVaultCategory(category) {
+      return category == 'contracts'
+        || category == 'sows'
+        || category == 'evidence'
+        || category == 'reports'
+        || category == 'communications'
+        || category == 'misc';
+    }
+
+    function fileDoc(orgId, fileId) {
+      return firestore.get(/databases/$(database)/documents/orgs/$(orgId)/files/$(fileId));
+    }
+
+    function currentFileId() {
+      return request.resource != null && request.resource.metadata.fileId != null
+        ? request.resource.metadata.fileId
+        : (resource != null && resource.metadata.fileId != null ? resource.metadata.fileId : null);
+    }
+
+    function uploadMetadataMatches(orgId, entityType, entityId, clientId) {
+      return request.resource != null
+        && request.resource.metadata.orgId == orgId
+        && request.resource.metadata.entityType == entityType
+        && request.resource.metadata.entityId == entityId
+        && (clientId == null || request.resource.metadata.clientId == clientId);
+    }
+
+    function staffCanAccess(orgId, fileId) {
+      let memberDoc = member(orgId);
+      let record = fileDoc(orgId, fileId);
+      return isStaff(memberDoc)
+        && record.exists()
+        && record.data.orgId == orgId
+        && record.data.fileId == fileId
+        && record.data.status == 'active';
+    }
+
+    function clientCanAccess(orgId, clientId, entityType, entityId, category, fileId) {
+      let memberDoc = member(orgId);
+      let record = fileDoc(orgId, fileId);
+      return isClient(memberDoc)
+        && clientId != null
+        && memberClientId(memberDoc) == clientId
+        && record.exists()
+        && record.data.orgId == orgId
+        && record.data.fileId == fileId
+        && record.data.visibility == 'client'
+        && record.data.clientId == clientId
+        && record.data.entityType == entityType
+        && record.data.entityId == entityId
+        && (category == null || record.data.category == category)
+        && record.data.status == 'active';
+    }
+
+    function canReadFile(orgId, clientId, entityType, entityId, category) {
+      let fileId = currentFileId();
+      if (fileId == null) {
+        return false;
+      }
+
+      return staffCanAccess(orgId, fileId) || clientCanAccess(orgId, clientId, entityType, entityId, category, fileId);
+    }
+
+    function canStaffUpload(orgId, entityType, entityId, clientId) {
+      let fileId = currentFileId();
+      let memberDoc = member(orgId);
+      return fileId != null && isStaff(memberDoc) && uploadMetadataMatches(orgId, entityType, entityId, clientId);
+    }
+
+    function canClientUpload(orgId, clientId, entityType, entityId) {
+      let fileId = currentFileId();
+      let memberDoc = member(orgId);
+      return fileId != null
+        && isClient(memberDoc)
+        && memberClientId(memberDoc) == clientId
+        && uploadMetadataMatches(orgId, entityType, entityId, clientId);
+    }
+
+    match /orgs/{orgId}/clients/{clientId}/vault/{category}/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, clientId, 'client', clientId, category);
+      allow write: if isValidDateSegments(year, month)
+        && isValidVaultCategory(category)
+        && canStaffUpload(orgId, 'client', clientId, clientId);
+    }
+
+    match /orgs/{orgId}/proposals/{proposalId}/attachments/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, null, 'proposal', proposalId, null);
+      allow write: if isValidDateSegments(year, month)
+        && canStaffUpload(orgId, 'proposal', proposalId, null);
+    }
+
+    match /orgs/{orgId}/projects/{projectId}/deliverables/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, null, 'project', projectId, null);
+      allow write: if isValidDateSegments(year, month)
+        && canStaffUpload(orgId, 'project', projectId, null);
+    }
+
+    match /orgs/{orgId}/templates/{templateType}/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, null, 'template', templateType, templateType);
+      allow write: if isValidDateSegments(year, month)
+        && canStaffUpload(orgId, 'template', templateType, null);
+    }
+
+    match /orgs/{orgId}/clients/{clientId}/uploads/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, clientId, 'client', clientId, null);
+      allow write: if isValidDateSegments(year, month)
+        && canClientUpload(orgId, clientId, 'client', clientId);
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

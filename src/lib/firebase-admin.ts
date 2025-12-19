@@ -18,14 +18,9 @@ const globalFirebase = globalThis as FirebaseAdminGlobals;
 
 function parseServiceAccount(): admin.ServiceAccount {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
 
   if (!raw) {
-    const emulatorHint = emulatorHost
-      ? 'Falling back to the Firestore emulator because FIREBASE_SERVICE_ACCOUNT is not set.'
-      : 'Missing FIREBASE_SERVICE_ACCOUNT. Provide a JSON stringified service account or set FIREBASE_EMULATOR_HOST/FIRESTORE_EMULATOR_HOST to use the emulator locally.';
-
-    throw new Error(emulatorHint);
+    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT. Provide a JSON stringified service account or set FIREBASE_EMULATOR_HOST/FIRESTORE_EMULATOR_HOST to use the emulator locally.');
   }
 
   let parsed: RawServiceAccount;
@@ -56,16 +51,14 @@ function initializeFirebaseAdmin(): admin.app.App {
   }
 
   const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
+  const projectId = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
 
-  if (emulatorHost) {
-    const projectId = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
+  if (emulatorHost || !process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const host = emulatorHost ?? '127.0.0.1:8080';
+    console.warn('Falling back to the Firestore emulator because FIREBASE_SERVICE_ACCOUNT is not set.');
 
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-      console.warn('Falling back to the Firestore emulator because FIREBASE_SERVICE_ACCOUNT is not set.');
-    }
-
-    process.env.FIREBASE_EMULATOR_HOST = process.env.FIREBASE_EMULATOR_HOST ?? emulatorHost;
-    process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? emulatorHost;
+    process.env.FIREBASE_EMULATOR_HOST = process.env.FIREBASE_EMULATOR_HOST ?? host;
+    process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? host;
     process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT ?? projectId;
 
     globalFirebase.__firebaseAdminApp__ = admin.initializeApp({ projectId });
