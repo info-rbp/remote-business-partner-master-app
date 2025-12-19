@@ -13,6 +13,8 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
   const auth = useMemo(() => getFirebaseAuth(), []);
   const functions = useMemo(() => getFunctions(), []);
   const router = useRouter();
+  const auth = getFirebaseAuth();
+  const functions = getFirebaseFunctions();
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<{ idToken: string; appCheckToken: string } | null>(null);
   const [title, setTitle] = useState('');
