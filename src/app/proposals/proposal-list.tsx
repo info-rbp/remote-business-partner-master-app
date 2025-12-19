@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Pencil, Eye } from 'lucide-react';
 
@@ -12,17 +12,15 @@ interface Proposal {
 }
 
 export default function ProposalList({ initialProposals }: { initialProposals: Proposal[] }) {
-  const [proposals, setProposals] = useState(initialProposals);
-  const [filteredProposals, setFilteredProposals] = useState(initialProposals);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
+  const filteredProposals = useMemo(() => {
     if (statusFilter === 'all') {
-      setFilteredProposals(proposals);
-    } else {
-      setFilteredProposals(proposals.filter((p) => p.status === statusFilter));
+      return initialProposals;
     }
-  }, [statusFilter, proposals]);
+
+    return initialProposals.filter((p) => p.status === statusFilter);
+  }, [initialProposals, statusFilter]);
 
   return (
     <div>
