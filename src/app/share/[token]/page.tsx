@@ -15,9 +15,12 @@ function ShareNotFound({ message }: { message: string }) {
 }
 
 export default async function SharePage({ params }: { params: { token: string } }) {
-  const shareSnapshot = await db.collection("proposalShares").doc(params.token).get();
+  const shareSnapshot = await db.collection("proposalShares").doc(params.token).get().catch((error) => {
+    console.warn("Unable to load proposal share.", error);
+    return null;
+  });
 
-  if (!shareSnapshot.exists) {
+  if (!shareSnapshot || !shareSnapshot.exists) {
     return <ShareNotFound message="The share link you followed is invalid or has been removed." />;
   }
 
@@ -35,9 +38,12 @@ export default async function SharePage({ params }: { params: { token: string } 
     return <ShareNotFound message="This share link has expired or is no longer available." />;
   }
 
-  const proposalSnapshot = await db.collection("proposals").doc(shareData.proposalId).get();
+  const proposalSnapshot = await db.collection("proposals").doc(shareData.proposalId).get().catch((error) => {
+    console.warn("Unable to load proposal for share.", error);
+    return null;
+  });
 
-  if (!proposalSnapshot.exists) {
+  if (!proposalSnapshot || !proposalSnapshot.exists) {
     return <ShareNotFound message="The proposal associated with this share link could not be found." />;
   }
 

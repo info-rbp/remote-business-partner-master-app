@@ -4,7 +4,17 @@ import { updateProposal } from "@/app/proposals/actions";
 import EditProposalForm from "./edit-proposal-form";
 
 export default async function EditProposalPage({ params }: { params: { id: string } }) {
-  const proposalSnapshot = await db.collection("proposals").doc(params.id).get();
+  const proposalSnapshot = await db.collection("proposals").doc(params.id).get().catch((error) => {
+    console.warn("Unable to load proposal for editing.", error);
+    return null;
+  });
+
+  if (!proposalSnapshot || !proposalSnapshot.exists) {
+    return (
+      <div className="text-gray-300">Proposal not found.</div>
+    );
+  }
+
   const proposal = { id: proposalSnapshot.id, ...proposalSnapshot.data() } as { id: string; title: string; content: string };
 
   return (
