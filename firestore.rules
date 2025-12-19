@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Get a user's role within an organization
+    function getRole(orgId) {
+      return get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid)).data.role;
+    }
+
+    match /orgs/{orgId} {
+      // Org-level access: Only admins and staff can read org details
+      allow read: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+      allow write: if request.auth != null && getRole(orgId) == 'admin'; // Only admins can modify org details
+
+      // Members: Admins can manage members, staff can read the list
+      match /members/{userId} {
+        allow read: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+        allow write: if request.auth != null && getRole(orgId) == 'admin';
+      }
+
+      // Clients: Admins and staff can manage clients
+      match /clients/{clientId} {
+        allow read, write: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+      }
+
+      // Proposals: Granular access based on roles
+      match /proposals/{proposalId} {
+        // Public read access via a share token
+        allow get: if resource.data.shareToken != null && resource.data.shareToken == request.query.get('token');
+        
+        // Admins and staff have full access
+        allow read, write: if request.auth != null && getRole(orgId) in ['admin', 'staff'];
+
+        // Clients can only read proposals where they are the client
+        allow read: if request.auth != null && getRole(orgId) == 'client' && resource.data.clientId == request.auth.uid;
+      }
+
+      // Settings: Only admins can manage settings
+      match /settings/{doc=**} {
+        allow read, write: if request.auth != null && getRole(orgId) == 'admin';
+      }
+    }
+  }
+}
