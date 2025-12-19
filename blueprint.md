@@ -55,4 +55,4 @@ This project is a Next.js application that leverages AI to generate business pro
 
 *   Provide Firebase web app credentials in `NEXT_PUBLIC_FIREBASE_CONFIG` (or `NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG`/`FIREBASE_WEBAPP_CONFIG`) as a JSON string.
 *   App Check for callable functions uses either `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` or `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY`.
-*   The Admin SDK expects `FIREBASE_SERVICE_ACCOUNT` to contain the service account JSON.
+*   The Admin SDK expects `FIREBASE_SERVICE_ACCOUNT` to contain the service account JSON when targeting production resources. For local development you can point at the Firestore emulator instead by setting `FIREBASE_EMULATOR_HOST`/`FIRESTORE_EMULATOR_HOST` plus `FIREBASE_PROJECT_ID` or `GCLOUD_PROJECT`.
