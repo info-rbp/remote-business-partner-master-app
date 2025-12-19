@@ -1,5 +1,5 @@
 
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 import Link from "next/link";
 
 export default async function PreviewProposalPage({ params }: { params: { id: string } }) {

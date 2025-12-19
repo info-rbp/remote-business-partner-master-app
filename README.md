@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Firebase configuration
+
+The app connects to Firestore through `firebase-admin`. Configure the following environment variables before running the app locally or in production:
+
+- `FIREBASE_SERVICE_ACCOUNT`: **Required for production.** A JSON string of your service account object containing `project_id`, `client_email`, and `private_key`. If your private key is multi-line, replace newline characters with `\\n` so it can be parsed from the environment variable. Example:
+
+  ```bash
+  export FIREBASE_SERVICE_ACCOUNT='{"project_id":"my-project","client_email":"firebase-adminsdk@my-project.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"}'
+  ```
+
+- `FIREBASE_PROJECT_ID`: The Firebase project ID. This can override the value embedded in `FIREBASE_SERVICE_ACCOUNT` or provide it when running against the emulator.
+
+- `FIREBASE_EMULATOR_HOST`: Optional. When set (for example `localhost:8080`), the app will skip service account initialization and connect to the Firestore emulator instead. You can also set `FIRESTORE_EMULATOR_HOST` if you prefer the standard Firebase variable name; the value from `FIREBASE_EMULATOR_HOST` is reused automatically when both are present.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { db } from '@/lib/firebase-admin';
+import { db } from '@/lib/db';
 
 export async function createProposal(formData: FormData) {
   const proposal = {
