@@ -15,8 +15,9 @@ type FirebaseAdminGlobals = typeof globalThis & {
 };
 
 const globalFirebase = globalThis as FirebaseAdminGlobals;
+const appEnv = (process.env.APP_ENV ?? 'development').toLowerCase();
 
-function parseServiceAccount(): admin.ServiceAccount {
+function parseServiceAccount(): admin.ServiceAccount | null {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
 
   if (!raw) {
@@ -65,7 +66,9 @@ function initializeFirebaseAdmin(): admin.app.App {
     return globalFirebase.__firebaseAdminApp__;
   }
 
-  const serviceAccount = parseServiceAccount();
+  if (!serviceAccount) {
+    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT. Provide a JSON stringified service account or set FIREBASE_EMULATOR_HOST/FIRESTORE_EMULATOR_HOST to use the emulator locally.');
+  }
 
   globalFirebase.__firebaseAdminApp__ = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

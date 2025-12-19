@@ -2,6 +2,9 @@
 import { db } from '@/lib/db';
 import ProposalList from './proposal-list';
 
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 async function getProposals() {
   try {
     const snapshot = await db.collection('proposals').get();

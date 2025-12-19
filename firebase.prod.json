@@ -1,6 +1,6 @@
 {
   "apphosting": {
-    "backendId": "rbp-dev-backend",
+    "backendId": "rbp-prod-backend",
     "rootDir": ".",
     "ignore": [
       "node_modules",
@@ -30,8 +30,5 @@
   "firestore": {
     "indexes": "firestore.indexes.json",
     "rules": "firestore.rules"
-  },
-  "storage": {
-    "rules": "storage.rules"
   }
 }

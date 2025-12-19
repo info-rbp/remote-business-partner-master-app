@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "firebase:use:dev": "firebase use dev",
+    "firebase:use:prod": "firebase use prod",
+    "deploy:dev": "firebase use dev && firebase deploy --config firebase.json --only apphosting,firestore,functions",
+    "deploy:prod": "node scripts/confirm-prod-deploy.js && firebase use prod && firebase deploy --config firebase.prod.json --only apphosting,firestore,functions",
+    "seed:dev": "firebase use dev && node scripts/seed-dev.js"
   },
   "dependencies": {
     "firebase": "^12.7.0",
