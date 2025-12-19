@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -10,7 +10,7 @@ import {
 import { getFirebaseAuth } from '@/lib/firebase-client';
 
 export default function AuthForm() {
-  const auth = getFirebaseAuth();
+  const auth = useMemo(() => getFirebaseAuth(), []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'login' | 'register'>('login');

@@ -30,9 +30,26 @@ The app connects to Firestore through `firebase-admin`. Configure the following 
   export FIREBASE_SERVICE_ACCOUNT='{"project_id":"my-project","client_email":"firebase-adminsdk@my-project.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"}'
   ```
 
-- `FIREBASE_PROJECT_ID`: The Firebase project ID. This can override the value embedded in `FIREBASE_SERVICE_ACCOUNT` or provide it when running against the emulator.
+- `FIREBASE_PROJECT_ID` or `GCLOUD_PROJECT`: The Firebase project ID. This can override the value embedded in `FIREBASE_SERVICE_ACCOUNT` or provide it when running against the emulator. `GCLOUD_PROJECT` is populated automatically when you run against the emulator, but you can set it explicitly.
 
-- `FIREBASE_EMULATOR_HOST`: Optional. When set (for example `localhost:8080`), the app will skip service account initialization and connect to the Firestore emulator instead. You can also set `FIRESTORE_EMULATOR_HOST` if you prefer the standard Firebase variable name; the value from `FIREBASE_EMULATOR_HOST` is reused automatically when both are present.
+- `FIREBASE_EMULATOR_HOST` or `FIRESTORE_EMULATOR_HOST`: Optional. When set (for example `localhost:8080`), the app will skip service account initialization and connect to the Firestore emulator instead. The host value is reused between both variables so you can set whichever is most convenient.
+
+To run locally against the Firestore emulator:
+
+1. Start the emulator in another terminal (default Firestore port is `8080`):
+
+   ```bash
+   firebase emulators:start --only firestore
+   ```
+
+2. Set the emulator host and a project ID for the local build:
+
+   ```bash
+   export FIREBASE_EMULATOR_HOST=localhost:8080
+   export FIREBASE_PROJECT_ID=demo-project # or your project ID
+   ```
+
+3. With the variables set, run your usual commands (`npm run dev`, `npm run build`, `npm run lint`). The server will reuse the emulator host automatically without requiring `FIREBASE_SERVICE_ACCOUNT`.
 
 ## Learn More
 
@@ -64,4 +81,4 @@ To enable Firebase App Check for callable functions, also set one of:
 - `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY`
 - `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY`
 
-Server-side functions that call Firebase Admin require `FIREBASE_SERVICE_ACCOUNT` to hold the service account JSON string.
+Server-side functions that call Firebase Admin require `FIREBASE_SERVICE_ACCOUNT` to hold the service account JSON string, unless you are explicitly targeting the Firestore emulator with `FIREBASE_EMULATOR_HOST`/`FIRESTORE_EMULATOR_HOST`.

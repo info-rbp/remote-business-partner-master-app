@@ -1,6 +1,7 @@
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import { VertexAI } from "@google-cloud/vertexai";
 
@@ -63,4 +64,16 @@ export const generateProposal = onCall(async (request) => {
   const newProposalRef = await db.collection("proposals").add(proposal);
 
   return { proposalId: newProposalRef.id };
+});
+
+export const weeklySummary = onSchedule({ schedule: "every sunday 00:00" }, (event) => {
+  console.log("Weekly summary placeholder triggered.", { event });
+});
+
+export const monthlyReview = onSchedule({ schedule: "0 0 1 * *" }, (event) => {
+  console.log("Monthly review placeholder triggered.", { event });
+});
+
+export const staleLeadNudge = onSchedule({ schedule: "every 24 hours" }, (event) => {
+  console.log("Stale lead nudge placeholder triggered.", { event });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getAuthTokens, getFirebaseAuth } from '@/lib/firebase-client';
 import AuthForm from '@/app/components/auth-form';
@@ -18,7 +18,7 @@ export default function EditProposalForm({
   content: string;
   updateProposalAction: UpdateAction;
 }) {
-  const auth = getFirebaseAuth();
+  const auth = useMemo(() => getFirebaseAuth(), []);
   const [user, setUser] = useState<User | null>(null);
   const [tokens, setTokens] = useState<{ idToken: string; appCheckToken: string } | null>(null);
   const [pendingAction, startAction] = useTransition();
@@ -41,7 +41,7 @@ export default function EditProposalForm({
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
   const handleSubmit = async (formData: FormData) => {
     if (!tokens) {

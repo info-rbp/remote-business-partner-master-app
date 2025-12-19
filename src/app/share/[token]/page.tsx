@@ -1,4 +1,4 @@
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 
 type Proposal = { title: string; content: string };
 type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp };
@@ -25,7 +25,13 @@ export default async function SharePage({ params }: { params: { token: string } 
   const expiresAt = shareData?.expiresAt?.toDate();
   const now = new Date();
 
-  if (!shareData?.proposalId || !expiresAt || expiresAt.getTime() <= now.getTime()) {
+  if (
+    !shareData?.proposalId ||
+    !shareData?.token ||
+    shareData.token !== params.token ||
+    !expiresAt ||
+    expiresAt.getTime() <= now.getTime()
+  ) {
     return <ShareNotFound message="This share link has expired or is no longer available." />;
   }
 

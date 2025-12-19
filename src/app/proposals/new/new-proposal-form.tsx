@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { httpsCallable } from 'firebase/functions';
-import { getAuthTokens, getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase-client';
+import { getAuthTokens, getFirebaseAuth, getFunctions } from '@/lib/firebase-client';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import AuthForm from '@/app/components/auth-form';
 
 type ProposalAction = (formData: FormData) => Promise<void>;
 
 export default function NewProposalForm({ createProposalAction }: { createProposalAction: ProposalAction }) {
+  const auth = useMemo(() => getFirebaseAuth(), []);
+  const functions = useMemo(() => getFunctions(), []);
   const router = useRouter();
   const auth = getFirebaseAuth();
   const functions = getFirebaseFunctions();
@@ -40,7 +42,7 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
   const handleGenerate = async () => {
     if (!user) {
