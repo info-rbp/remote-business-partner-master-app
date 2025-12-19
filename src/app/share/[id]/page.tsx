@@ -1,5 +1,5 @@
 
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 
 export default async function ShareProposalPage({ params }: { params: { id: string } }) {
   const proposalSnapshot = await db.collection("proposals").doc(params.id).get();
