@@ -50,53 +50,45 @@ function initializeFirebaseAdmin(): admin.app.App {
     return globalFirebase.__firebaseAdminApp__;
   }
 
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
-  const projectId = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
+import { initializeApp, cert, getApps, type App } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-  if (emulatorHost || !process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const host = emulatorHost ?? '127.0.0.1:8080';
-    console.warn('Falling back to the Firestore emulator because FIREBASE_SERVICE_ACCOUNT is not set.');
+// Optional: you might also use getAuth, getStorage, etc later.
+// import { getAuth } from "firebase-admin/auth";
 
-    process.env.FIREBASE_EMULATOR_HOST = process.env.FIREBASE_EMULATOR_HOST ?? host;
-    process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? host;
-    process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT ?? projectId;
+let adminApp: App | undefined;
 
-    globalFirebase.__firebaseAdminApp__ = admin.initializeApp({ projectId });
-    return globalFirebase.__firebaseAdminApp__;
+function initAdminApp(): App {
+  // Reuse existing app if already initialized
+  if (getApps().length) return getApps()[0]!;
+  if (adminApp) return adminApp;
+
+  const usingEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST ||
+    process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+    process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+
+  // 1) Emulator mode: no explicit credentials needed
+  if (usingEmulator) {
+    adminApp = initializeApp();
+    return adminApp;
   }
 
-  const serviceAccount = parseServiceAccount();
-
-  globalFirebase.__firebaseAdminApp__ = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: serviceAccount.projectId,
-  });
-
-  return globalFirebase.__firebaseAdminApp__;
-}
-
-function initializeFirestore(): admin.firestore.Firestore {
-  if (globalFirebase.__firestore__) {
-    return globalFirebase.__firestore__;
+  // 2) Explicit service account (local / CI) if provided
+  const saRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (saRaw) {
+    const serviceAccount = JSON.parse(saRaw);
+    adminApp = initializeApp({ credential: cert(serviceAccount) });
+    return adminApp;
   }
 
-  const firestore = admin.firestore(initializeFirebaseAdmin());
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
-
-  if (emulatorHost) {
-    firestore.settings({ host: emulatorHost, ssl: false });
-  }
-
-  globalFirebase.__firestore__ = firestore;
-  return firestore;
+  // 3) Cloud Run / App Hosting: use Application Default Credentials
+  // This works when the runtime has a service account with Firebase permissions.
+  adminApp = initializeApp();
+  return adminApp;
 }
 
-export function getFirebaseAdminApp(): admin.app.App {
-  return initializeFirebaseAdmin();
-}
-
-export function getFirestore(): admin.firestore.Firestore {
-  return initializeFirestore();
-}
-
-export const db = initializeFirestore();
+export const admin = {
+  app: initAdminApp(),
+  db: getFirestore(initAdminApp()),
+};
