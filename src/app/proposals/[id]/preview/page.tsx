@@ -1,7 +1,5 @@
 
-import { db } from "@/lib/firebase-admin";
-import admin from "firebase-admin";
-import { randomBytes } from "crypto";
+import { db } from "@/lib/db";
 import Link from "next/link";
 
 type Proposal = { id: string; title: string; content: string };

@@ -29,6 +29,7 @@ This project is a Next.js application that leverages AI to generate business pro
 *   `src/app/settings/page.tsx`: A page to manage application settings.
 *   `src/app/loading.tsx`: A global loading indicator.
 *   `src/app/error.tsx`: A global error boundary.
+*   `src/lib/firebase-client.ts`: Client-side Firebase initialization with Auth, Functions, and App Check support.
 
 ### Design & Style
 
@@ -46,6 +47,12 @@ This project is a Next.js application that leverages AI to generate business pro
     *   Created `src/app/loading.tsx` to provide a loading indicator for all routes.
     *   Created `src/app/error.tsx` to provide a fallback UI in case of an error.
     *   Installed the `lucide-react` icon library.
-    *   Added icons to the navigation in the `header.tsx` file.
-    *   Added icons to the buttons on the `proposals` page.
-    *   Restored the `package.json` build script.
+*   Added icons to the navigation in the `header.tsx` file.
+*   Added icons to the buttons on the `proposals` page.
+*   Restored the `package.json` build script.
+
+## Environment & Security Notes
+
+*   Provide Firebase web app credentials in `NEXT_PUBLIC_FIREBASE_CONFIG` (or `NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG`/`FIREBASE_WEBAPP_CONFIG`) as a JSON string.
+*   App Check for callable functions uses either `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` or `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY`.
+*   The Admin SDK expects `FIREBASE_SERVICE_ACCOUNT` to contain the service account JSON.

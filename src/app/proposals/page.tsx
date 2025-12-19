@@ -1,5 +1,5 @@
 
-import { db } from '@/lib/firebase-admin';
+import { db } from '@/lib/db';
 import ProposalList from './proposal-list';
 
 async function getProposals() {
