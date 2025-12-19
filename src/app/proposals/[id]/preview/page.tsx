@@ -1,5 +1,6 @@
 
 import { db } from "@/lib/db";
+import { DEFAULT_ORG_ID } from "@/lib/org";
 import admin from "firebase-admin";
 import Link from "next/link";
 import { headers } from "next/headers";
@@ -16,9 +17,12 @@ type ProposalShare = {
 const SHARE_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 async function getProposal(proposalId: string): Promise<Proposal | null> {
-  const snapshot = await db.collection("proposals").doc(proposalId).get();
+  const snapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposals").doc(proposalId).get().catch((error) => {
+    console.warn('Failed to load proposal for preview.', { error, proposalId });
+    return null;
+  });
 
-  if (!snapshot.exists) {
+  if (!snapshot?.exists) {
     return null;
   }
 
@@ -29,12 +33,15 @@ async function getProposal(proposalId: string): Promise<Proposal | null> {
 }
 
 async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
-  const existingSharesSnapshot = await db.collection("proposalShares").where("proposalId", "==", proposalId).get();
+  const existingSharesSnapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposalShares").where("proposalId", "==", proposalId).get().catch((error) => {
+    console.warn('Failed to load existing proposal shares.', { error, proposalId });
+    return null;
+  });
   const now = Date.now();
 
   let activeShare: ProposalShare | null = null;
 
-  existingSharesSnapshot.forEach((doc) => {
+  existingSharesSnapshot?.forEach((doc) => {
     const data = doc.data() as ProposalShare;
     const expiresAtMillis = data.expiresAt?.toMillis() ?? 0;
 
@@ -52,14 +59,16 @@ async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
   const createdAt = admin.firestore.Timestamp.fromMillis(now);
   const newShare: ProposalShare = { proposalId, token, expiresAt, createdAt };
 
-  await db.collection("proposalShares").doc(token).set(newShare);
+  await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposalShares").doc(token).set(newShare).catch((error) => {
+    console.warn('Failed to write new proposal share.', { error, proposalId, token });
+  });
 
   return newShare;
 }
 
 export default async function PreviewProposalPage({ params }: { params: { id: string } }) {
   const proposal = await getProposal(params.id);
-  const headerValues = headers();
+  const headerValues = await headers();
   const host = headerValues.get("host");
   const forwardedProtocol = headerValues.get("x-forwarded-proto");
 

@@ -15,10 +15,31 @@ type FirebaseAdminGlobals = typeof globalThis & {
 };
 
 const globalFirebase = globalThis as FirebaseAdminGlobals;
+const DEFAULT_EMULATOR_HOST = 'localhost:8080';
+
+function resolveEmulatorHost(): string | undefined {
+  const explicitHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
+  if (explicitHost) {
+    return explicitHost;
+  }
+
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.warn(
+      `FIREBASE_SERVICE_ACCOUNT is not set; defaulting to the Firestore emulator at ${DEFAULT_EMULATOR_HOST}. ` +
+      'Provide FIREBASE_SERVICE_ACCOUNT in production environments.',
+    );
+    process.env.FIREBASE_EMULATOR_HOST = DEFAULT_EMULATOR_HOST;
+    process.env.FIRESTORE_EMULATOR_HOST = DEFAULT_EMULATOR_HOST;
+    process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
+    return DEFAULT_EMULATOR_HOST;
+  }
+
+  return undefined;
+}
 
 function parseServiceAccount(): admin.ServiceAccount {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
+  const emulatorHost = resolveEmulatorHost();
 
   if (!raw) {
     const emulatorHint = emulatorHost
@@ -55,15 +76,10 @@ function initializeFirebaseAdmin(): admin.app.App {
     return globalFirebase.__firebaseAdminApp__;
   }
 
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
+  const emulatorHost = resolveEmulatorHost();
 
   if (emulatorHost) {
     const projectId = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
-
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-      console.warn('Falling back to the Firestore emulator because FIREBASE_SERVICE_ACCOUNT is not set.');
-    }
-
     process.env.FIREBASE_EMULATOR_HOST = process.env.FIREBASE_EMULATOR_HOST ?? emulatorHost;
     process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? emulatorHost;
     process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT ?? projectId;
@@ -88,7 +104,7 @@ function initializeFirestore(): admin.firestore.Firestore {
   }
 
   const firestore = admin.firestore(initializeFirebaseAdmin());
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST ?? process.env.FIRESTORE_EMULATOR_HOST;
+  const emulatorHost = resolveEmulatorHost();
 
   if (emulatorHost) {
     firestore.settings({ host: emulatorHost, ssl: false });

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { DEFAULT_ORG_ID } from "@/lib/org";
 
 type Proposal = { title: string; content: string };
 type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp };
@@ -15,9 +16,12 @@ function ShareNotFound({ message }: { message: string }) {
 }
 
 export default async function SharePage({ params }: { params: { token: string } }) {
-  const shareSnapshot = await db.collection("proposalShares").doc(params.token).get();
+  const shareSnapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposalShares").doc(params.token).get().catch((error) => {
+    console.warn('Failed to load proposal share metadata.', { error, token: params.token });
+    return null;
+  });
 
-  if (!shareSnapshot.exists) {
+  if (!shareSnapshot?.exists) {
     return <ShareNotFound message="The share link you followed is invalid or has been removed." />;
   }
 
@@ -35,9 +39,12 @@ export default async function SharePage({ params }: { params: { token: string } 
     return <ShareNotFound message="This share link has expired or is no longer available." />;
   }
 
-  const proposalSnapshot = await db.collection("proposals").doc(shareData.proposalId).get();
+  const proposalSnapshot = await db.collection("orgs").doc(DEFAULT_ORG_ID).collection("proposals").doc(shareData.proposalId).get().catch((error) => {
+    console.warn('Failed to load proposal for share token.', { error, token: params.token });
+    return null;
+  });
 
-  if (!proposalSnapshot.exists) {
+  if (!proposalSnapshot?.exists) {
     return <ShareNotFound message="The proposal associated with this share link could not be found." />;
   }
 
