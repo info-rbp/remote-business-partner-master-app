@@ -1,1 +1,3 @@
-export { db } from './firebase-admin';
+import { getFirestore } from './firebase-admin';
+
+export const db = getFirestore();

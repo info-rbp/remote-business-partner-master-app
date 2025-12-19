@@ -30,5 +30,8 @@
   "firestore": {
     "indexes": "firestore.indexes.json",
     "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
