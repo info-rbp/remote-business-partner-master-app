@@ -20,6 +20,7 @@ async function verifyTokens(formData: FormData) {
 }
 
 export async function createProposal(formData: FormData) {
+  'use server'
   const uid = await verifyTokens(formData);
 
   const proposal = {
@@ -36,6 +37,7 @@ export async function createProposal(formData: FormData) {
 }
 
 export async function updateProposal(id: string, formData: FormData) {
+  'use server'
   await verifyTokens(formData);
 
   const proposal = {

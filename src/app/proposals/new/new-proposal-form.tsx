@@ -21,7 +21,7 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
   const [generateStatus, setGenerateStatus] = useState<string | null>(null);
   const [isGenerating, startGenerating] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [pendingAction, startAction] = useTransition();
+  const [pendingAction] = useTransition();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -70,14 +70,8 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
     });
   };
 
-  const handleSubmit = async (formData: FormData) => {
-    if (!tokens) {
-      setError('Unable to fetch authentication tokens. Check App Check configuration.');
-      return;
-    }
-
-    startAction(() => createProposalAction(formData));
-  };
+  // Server Action is passed from the page and bound as the form action.
+  // We rely on hidden inputs for tokens, which the server action will read.
 
   if (!user) {
     return (
@@ -101,7 +95,7 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
         </button>
       </div>
       {error && <p className="text-red-400 mb-4">{error}</p>}
-      <form action={handleSubmit} className="bg-gray-800 p-4 rounded-lg">
+      <form action={createProposalAction} className="bg-gray-800 p-4 rounded-lg">
         <input type="hidden" name="idToken" value={tokens?.idToken ?? ''} />
         <input type="hidden" name="appCheckToken" value={tokens?.appCheckToken ?? ''} />
         <div className="mb-4">
@@ -136,9 +130,9 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-            disabled={pendingAction || !tokens}
+            disabled={!tokens}
           >
-            {pendingAction ? 'Saving…' : 'Save Proposal'}
+            Save Proposal
           </button>
         </div>
       </form>

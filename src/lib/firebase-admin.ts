@@ -10,9 +10,9 @@ function initAdminApp(): App {
   if (adminApp) return adminApp;
 
   const usingEmulator =
-    !!process.env.FIRESTORE_EMULATOR_HOST ||
-    !!process.env.FIREBASE_AUTH_EMULATOR_HOST ||
-    !!process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+  !!process.env.FIRESTORE_EMULATOR_HOST ||
+  !!process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  !!process.env.FIREBASE_STORAGE_EMULATOR_HOST;
 
   if (usingEmulator) {
     adminApp = initializeApp();
