@@ -1,5 +1,5 @@
 
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 import { updateProposal } from "@/app/proposals/actions";
 import EditProposalForm from "./edit-proposal-form";
 

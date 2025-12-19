@@ -13,12 +13,13 @@ interface Proposal {
 
 export default function ProposalList({ initialProposals }: { initialProposals: Proposal[] }) {
   const [statusFilter, setStatusFilter] = useState('all');
+
   const filteredProposals = useMemo(() => {
     if (statusFilter === 'all') {
       return initialProposals;
     }
     return initialProposals.filter((p) => p.status === statusFilter);
-  }, [statusFilter, initialProposals]);
+  }, [initialProposals, statusFilter]);
 
   return (
     <div>

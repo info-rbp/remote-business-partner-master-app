@@ -1,17 +1,89 @@
 
-import { db } from "@/lib/firebase-admin";
+import { db } from "@/lib/db";
 import Link from "next/link";
 
+type Proposal = { id: string; title: string; content: string };
+type ProposalShare = {
+  proposalId: string;
+  token: string;
+  expiresAt?: FirebaseFirestore.Timestamp;
+  createdAt?: FirebaseFirestore.Timestamp;
+};
+
+const SHARE_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+async function getProposal(proposalId: string): Promise<Proposal | null> {
+  const snapshot = await db.collection("proposals").doc(proposalId).get();
+
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  const data = snapshot.data() as Omit<Proposal, "id"> | undefined;
+  if (!data) return null;
+
+  return { id: snapshot.id, ...data };
+}
+
+async function getActiveShareToken(proposalId: string): Promise<ProposalShare> {
+  const existingSharesSnapshot = await db.collection("proposalShares").where("proposalId", "==", proposalId).get();
+  const now = Date.now();
+
+  let activeShare: ProposalShare | null = null;
+
+  existingSharesSnapshot.forEach((doc) => {
+    const data = doc.data() as ProposalShare;
+    const expiresAtMillis = data.expiresAt?.toMillis() ?? 0;
+
+    if (expiresAtMillis > now) {
+      if (!activeShare || (activeShare.expiresAt?.toMillis() ?? 0) < expiresAtMillis) {
+        activeShare = { ...data, token: data.token || doc.id };
+      }
+    }
+  });
+
+  if (activeShare) return activeShare;
+
+  const token = randomBytes(16).toString("hex");
+  const expiresAt = admin.firestore.Timestamp.fromMillis(now + SHARE_TOKEN_TTL_MS);
+  const createdAt = admin.firestore.Timestamp.fromMillis(now);
+  const newShare: ProposalShare = { proposalId, token, expiresAt, createdAt };
+
+  await db.collection("proposalShares").doc(token).set(newShare);
+
+  return newShare;
+}
+
 export default async function PreviewProposalPage({ params }: { params: { id: string } }) {
-  const proposalSnapshot = await db.collection("proposals").doc(params.id).get();
-  const proposal = { id: proposalSnapshot.id, ...proposalSnapshot.data() } as { id: string; title: string; content: string };
+  const proposal = await getProposal(params.id);
+
+  if (!proposal) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-800">Proposal Not Found</h1>
+          <p className="text-gray-600 mt-2">The proposal you are looking for does not exist.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const share = await getActiveShareToken(params.id);
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Preview Proposal</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Preview Proposal</h1>
+          <p className="text-sm text-gray-400">
+            Share link expires on{" "}
+            <span className="font-semibold text-gray-200">
+              {share.expiresAt?.toDate().toLocaleString() ?? "N/A"}
+            </span>
+          </p>
+        </div>
         <Link
-          href={`/share/${params.id}`}
+          href={`/share/${share.token}`}
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           prefetch={false}
         >
