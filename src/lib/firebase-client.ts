@@ -51,9 +51,21 @@ function parseFirebaseConfig(): FirebaseOptions {
   };
 
   if (appEnv === 'development' && !configFromEnv.projectId) {
-    throw new Error(
-      'APP_ENV is development but NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing. Copy .env.example to .env.local and provide your dev Firebase web app settings.',
+    console.warn(
+      'Firebase config missing in development environment. Falling back to demo Firebase configuration. ' +
+      'Provide NEXT_PUBLIC_FIREBASE_* variables in .env.local for full functionality.'
     );
+
+    cachedConfig = {
+      apiKey: 'demo-api-key',
+      authDomain: 'demo.firebaseapp.com',
+      projectId: 'demo-project',
+      storageBucket: 'demo-project.appspot.com',
+      messagingSenderId: 'demo-sender',
+      appId: 'demo-app',
+    };
+
+    return cachedConfig;
   }
 
   const missingKeys = Object.entries(configFromEnv)

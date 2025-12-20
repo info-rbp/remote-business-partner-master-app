@@ -1,7 +1,6 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import Header from './components/header';
 
 export const metadata: Metadata = {
   title: 'DealFlow AI',
@@ -15,10 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-white font-sans">
-        <Header />
-        <main className="container mx-auto p-4">{children}</main>
-      </body>
+      <body className="bg-gray-900 text-white font-sans">{children}</body>
     </html>
   );
 }

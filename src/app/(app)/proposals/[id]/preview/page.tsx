@@ -4,7 +4,7 @@ import admin from "firebase-admin";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { randomBytes } from "node:crypto";
-import { DocumentVault } from "../../../components/document-vault";
+import { DocumentVault } from "@/app/components/document-vault";
 
 type Proposal = { id: string; title: string; content: string };
 type ProposalShare = {
