@@ -2,7 +2,14 @@
 import { db } from "@/lib/db";
 
 export default async function ShareProposalPage({ params }: { params: { id: string } }) {
-  const proposalSnapshot = await db.collection("proposals").doc(params.id).get().catch((error) => {
+  const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? "demo-org";
+  const proposalSnapshot = await db
+    .collection("orgs")
+    .doc(orgId)
+    .collection("proposals")
+    .doc(params.id)
+    .get()
+    .catch((error) => {
     console.warn("Unable to load shared proposal.", error);
     return null;
   });

@@ -4,6 +4,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import { VertexAI } from "@google-cloud/vertexai";
+import { bootstrapOrg, getIdentity } from "./org";
 
 // Set the region for all functions in this file
 setGlobalOptions({ region: "us-central1" });
@@ -34,6 +35,11 @@ export const generateProposal = onCall(async (request) => {
     );
   }
 
+  const orgId = (request.auth.token as { orgId?: string }).orgId;
+  if (!orgId) {
+    throw new HttpsError("permission-denied", "No organization associated with this user.");
+  }
+
   const { prompt } = request.data;
 
   if (!prompt || typeof prompt !== "string") {
@@ -59,9 +65,15 @@ export const generateProposal = onCall(async (request) => {
     content: proposalContent,
     createdBy: request.auth.uid,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    orgId,
+    status: "draft",
   };
 
-  const newProposalRef = await db.collection("proposals").add(proposal);
+  const newProposalRef = await db
+    .collection("orgs")
+    .doc(orgId)
+    .collection("proposals")
+    .add(proposal);
 
   return { proposalId: newProposalRef.id };
 });
@@ -76,4 +88,25 @@ export const monthlyReview = onSchedule({ schedule: "0 0 1 * *" }, (event) => {
 
 export const staleLeadNudge = onSchedule({ schedule: "every 24 hours" }, (event) => {
   console.log("Stale lead nudge placeholder triggered.", { event });
+});
+
+export { bootstrapOrg, getIdentity };
+
+export const activityReminderDaily = onSchedule({ schedule: "every 24 hours" }, async () => {
+  if (process.env.ENABLE_ACTIVITY_REMINDERS !== "true") {
+    console.log("Activity reminders disabled.");
+    return;
+  }
+
+  const openActivities = await db
+    .collection("activities")
+    .where("status", "==", "open")
+    .where("dueDate", "<=", admin.firestore.Timestamp.fromMillis(Date.now() + 1000 * 60 * 60 * 24))
+    .get()
+    .catch((error) => {
+      console.warn("Unable to load activities for reminders", error);
+      return null;
+    });
+
+  console.log("Activity reminders summary", { count: openActivities?.size ?? 0 });
 });

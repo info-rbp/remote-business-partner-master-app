@@ -21,7 +21,6 @@ export default function NewProposalForm({ createProposalAction }: { createPropos
   const [generateStatus, setGenerateStatus] = useState<string | null>(null);
   const [isGenerating, startGenerating] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [pendingAction] = useTransition();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
