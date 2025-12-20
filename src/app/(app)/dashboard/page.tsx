@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import ProposalStatusChart from '../components/proposal-status-chart';
+import ProposalStatusChart from '@/app/components/proposal-status-chart';
 
 export default function DashboardPage() {
   return (
