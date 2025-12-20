@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { admin } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import type { Lead } from '@/lib/marketing/types';
 
 function getRequestMeta(request: Request) {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const { pageUrl, referrer } = getRequestMeta(request);
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
 
   const lead: Lead = {
     createdAt: now,

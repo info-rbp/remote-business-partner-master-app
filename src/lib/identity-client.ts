@@ -39,7 +39,7 @@ export async function ensureOrgBootstrapped(): Promise<ClientIdentity> {
   const functions = getFunctions();
   const tokens = await getAuthTokens();
   const bootstrap = httpsCallable(functions, 'bootstrapOrg');
-  await bootstrap({}, { headers: { 'X-Firebase-AppCheck': tokens.appCheckToken } as Record<string, string> });
+  await bootstrap({ appCheckToken: tokens.appCheckToken });
 
   await user.getIdToken(true);
   const refreshed = await readClaims();
