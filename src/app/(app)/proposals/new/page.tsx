@@ -1,5 +1,5 @@
 
-import { createProposal } from '@/actions/proposals';
+import { createProposal } from "@/app/(app)/proposals/actions";
 import NewProposalForm from "./new-proposal-form";
 
 export default function NewProposalPage() {

@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/db";
-import { updateProposal } from '@/actions/proposals';
+import { updateProposal } from "@/app/(app)/proposals/actions";
 import EditProposalForm from "./edit-proposal-form";
 
 export default async function EditProposalPage({ params }: { params: { id: string } }) {
