@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 type Proposal = { title: string; content: string };
-type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp };
+type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp; orgId: string };
 
 function ShareNotFound({ message }: { message: string }) {
   return (
@@ -33,12 +33,19 @@ export default async function SharePage({ params }: { params: { token: string } 
     !shareData?.token ||
     shareData.token !== params.token ||
     !expiresAt ||
-    expiresAt.getTime() <= now.getTime()
+    expiresAt.getTime() <= now.getTime() ||
+    !shareData.orgId
   ) {
     return <ShareNotFound message="This share link has expired or is no longer available." />;
   }
 
-  const proposalSnapshot = await db.collection("proposals").doc(shareData.proposalId).get().catch((error) => {
+  const proposalSnapshot = await db
+    .collection("orgs")
+    .doc(shareData.orgId)
+    .collection("proposals")
+    .doc(shareData.proposalId)
+    .get()
+    .catch((error) => {
     console.warn("Unable to load proposal for share.", error);
     return null;
   });

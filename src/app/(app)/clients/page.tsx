@@ -3,6 +3,7 @@
 
 import { useState, FormEvent, useRef } from 'react';
 import { DocumentVault } from '@/app/components/document-vault';
+import { useIdentity } from '@/app/components/IdentityGate';
 
 interface Client {
   id: number;
@@ -28,13 +29,13 @@ const initialClients: Client[] = [
 ];
 
 export default function ClientsPage() {
+  const { orgId } = useIdentity();
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>(
     initialClients[0]?.id.toString() ?? '',
   );
-  const orgId = process.env.NEXT_PUBLIC_DEMO_ORG_ID ?? 'demo-org';
   const nextClientId = useRef(
     Math.max(0, ...initialClients.map((client) => client.id)) + 1,
   );
@@ -79,6 +80,10 @@ export default function ClientsPage() {
   const handleSelectForVault = (client: Client) => {
     setSelectedClientId(client.id.toString());
   };
+
+  if (!orgId) {
+    return <div className="text-gray-300">Loading organization…</div>;
+  }
 
   return (
     <div>
@@ -134,7 +139,7 @@ export default function ClientsPage() {
       </div>
       {selectedClientId ? (
         <DocumentVault
-          orgId={orgId}
+          orgId={orgId ?? undefined}
           entityType="client"
           entityId={selectedClientId}
           clientId={selectedClientId}
