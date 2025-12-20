@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { admin } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import type { MarketingEvent } from '@/lib/marketing/types';
 
 const ALLOWED_TYPES: MarketingEvent['type'][] = [
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   const event: MarketingEvent = {
-    createdAt: admin.firestore.Timestamp.now(),
+    createdAt: Timestamp.now(),
     type: payload.type,
     pageUrl: typeof payload.pageUrl === 'string' ? payload.pageUrl : request.headers.get('referer') ?? undefined,
     referrer: typeof payload.referrer === 'string' ? payload.referrer : request.headers.get('referer') ?? undefined,
