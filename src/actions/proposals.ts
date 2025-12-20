@@ -1,7 +1,8 @@
+'use server';
 
 import { db } from '@/lib/db';
 import { admin } from '@/lib/firebase-admin';
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 async function verifyTokens(formData: FormData) {
   const idToken = formData.get('idToken');
@@ -20,7 +21,6 @@ async function verifyTokens(formData: FormData) {
 }
 
 export async function createProposal(formData: FormData) {
-  'use server'
   const uid = await verifyTokens(formData);
 
   const proposal = {
@@ -37,7 +37,6 @@ export async function createProposal(formData: FormData) {
 }
 
 export async function updateProposal(id: string, formData: FormData) {
-  'use server'
   await verifyTokens(formData);
 
   const proposal = {
