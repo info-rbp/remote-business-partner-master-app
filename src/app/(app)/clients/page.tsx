@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, FormEvent, useRef } from 'react';
-import { DocumentVault } from '../components/document-vault';
+import { DocumentVault } from '@/app/components/document-vault';
 
 interface Client {
   id: number;
