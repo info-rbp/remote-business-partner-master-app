@@ -3,82 +3,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function memberDoc(orgId) {
-      return request.auth != null
+      return isSignedIn()
         ? get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid))
         : null;
     }
 
-    function memberRole(orgId) {
+    function memberExists(orgId) {
+      let member = memberDoc(orgId);
+      return member != null && member.exists();
+    }
+
+    function memberIsActive(orgId) {
+      let member = memberDoc(orgId);
+      return member != null && member.exists() && member.data.status == 'active';
+    }
+
+    function orgRole(orgId) {
       let member = memberDoc(orgId);
       return member != null && member.exists() ? member.data.role : null;
     }
 
-    function isAdmin(orgId) {
-      return memberRole(orgId) == 'admin';
+    function hasRole(orgId, roles) {
+      let role = orgRole(orgId);
+      return memberIsActive(orgId) && roles.hasAny([role]);
     }
 
-    function isStaff(orgId) {
-      let role = memberRole(orgId);
-      return role == 'admin' || role == 'staff';
-    }
-
-    function isClient(orgId) {
-      return memberRole(orgId) == 'client';
-    }
-
-    function memberClientId(orgId) {
-      let member = memberDoc(orgId);
-      return member != null && member.exists() ? member.data.clientId : null;
+    function isOrgMember(orgId) {
+      return memberIsActive(orgId);
     }
 
     match /orgs/{orgId} {
-      // Org-level access: Only admins and staff can read org details
-      allow read: if request.auth != null && isStaff(orgId);
-      allow write: if request.auth != null && isAdmin(orgId); // Only admins can modify org details
+      allow read: if isOrgMember(orgId);
+      allow create: if false; // org creation is server-side only
+      allow update, delete: if hasRole(orgId, ['owner', 'admin']);
 
-      // Members: Admins can manage members, staff can read the list
       match /members/{userId} {
-        allow read: if request.auth != null && isStaff(orgId);
-        allow write: if request.auth != null && isAdmin(orgId);
+          allow read: if isOrgMember(orgId) || (isSignedIn() && request.auth.uid == userId);
+          allow create, update, delete: if hasRole(orgId, ['owner', 'admin']);
       }
 
-      // Clients: Admins and staff can manage clients
-      match /clients/{clientId} {
-        allow read, write: if request.auth != null && isStaff(orgId);
-      }
-
-      // File registry for Storage objects
-      match /files/{fileId} {
-        function canClientReadFile() {
-          return isClient(orgId)
-            && resource != null
-            && resource.data.visibility == 'client'
-            && resource.data.clientId != null
-            && memberClientId(orgId) == resource.data.clientId;
+        match /clients/{clientId} {
+          allow read, write: if isOrgMember(orgId);
         }
 
-        allow create: if request.auth != null && isStaff(orgId);
-        allow read: if request.auth != null && (isStaff(orgId) || canClientReadFile());
-        allow update, delete: if request.auth != null && isStaff(orgId);
+        match /files/{fileId} {
+          allow create, read, update, delete: if isOrgMember(orgId);
+        }
+
+        match /proposals/{proposalId} {
+          allow read, write: if isOrgMember(orgId);
+        }
+
+        match /settings/{doc=**} {
+          allow read, write: if hasRole(orgId, ['owner', 'admin']);
+        }
+    }
+
+    match /proposalShares/{token} {
+      function notExpired() {
+        return resource != null && resource.data.expiresAt != null && resource.data.expiresAt > request.time;
       }
 
-      // Proposals: Granular access based on roles
-      match /proposals/{proposalId} {
-        // Public read access via a share token
-        allow get: if resource.data.shareToken != null && resource.data.shareToken == request.query.get('token');
-
-        // Admins and staff have full access
-        allow read, write: if request.auth != null && isStaff(orgId);
-
-        // Clients can only read proposals where they are the client
-        allow read: if request.auth != null && isClient(orgId) && resource.data.clientId == memberClientId(orgId);
-      }
-
-      // Settings: Only admins can manage settings
-      match /settings/{doc=**} {
-        allow read, write: if request.auth != null && isAdmin(orgId);
-      }
+      allow get: if resource != null && notExpired() && resource.data.token == token;
+      allow create: if isSignedIn() && request.resource.data.orgId != null
+        && exists(/databases/$(database)/documents/orgs/$(request.resource.data.orgId)/members/$(request.auth.uid));
+      allow update, delete: if isSignedIn() && resource != null
+        && exists(/databases/$(database)/documents/orgs/$(resource.data.orgId)/members/$(request.auth.uid));
     }
   }
 }
