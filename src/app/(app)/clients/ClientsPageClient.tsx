@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, FormEvent, useRef } from 'react';
-import { DocumentVault } from '../components/document-vault';
+import { DocumentVault } from '@/app/components/document-vault';
 
 interface Client {
   id: number;
@@ -27,7 +26,7 @@ const initialClients: Client[] = [
   },
 ];
 
-export default function ClientsPage() {
+export default function ClientsPageClient() {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -204,17 +203,16 @@ function ClientModal({ client, onSave, onClose }: ClientModalProps) {
             </div>
             <div className="flex justify-end">
               <button
-                type="button"
-                onClick={onClose}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2"
-              >
-                Cancel
-              </button>
-              <button
                 type="submit"
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
               >
                 Save
+              </button>
+              <button
+                onClick={onClose}
+                className="ml-2 text-gray-400 hover:text-gray-200"
+              >
+                Cancel
               </button>
             </div>
           </form>
