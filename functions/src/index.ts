@@ -91,22 +91,3 @@ export const staleLeadNudge = onSchedule({ schedule: "every 24 hours" }, (event)
 });
 
 export { bootstrapOrg, getIdentity };
-
-export const activityReminderDaily = onSchedule({ schedule: "every 24 hours" }, async () => {
-  if (process.env.ENABLE_ACTIVITY_REMINDERS !== "true") {
-    console.log("Activity reminders disabled.");
-    return;
-  }
-
-  const openActivities = await db
-    .collection("activities")
-    .where("status", "==", "open")
-    .where("dueDate", "<=", admin.firestore.Timestamp.fromMillis(Date.now() + 1000 * 60 * 60 * 24))
-    .get()
-    .catch((error) => {
-      console.warn("Unable to load activities for reminders", error);
-      return null;
-    });
-
-  console.log("Activity reminders summary", { count: openActivities?.size ?? 0 });
-});
