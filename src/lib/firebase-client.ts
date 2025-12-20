@@ -25,12 +25,6 @@ function parseFirebaseConfig(): FirebaseOptions {
     ?? process.env.NEXT_PUBLIC_FIREBASE_WEBAPP_CONFIG
     ?? process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
 
-  if (!firebaseConfigString && appEnv === 'production' && process.env.ALLOW_PROD_LOCAL !== 'true') {
-    throw new Error(
-      'APP_ENV is set to production without FIREBASE_WEBAPP_CONFIG. App Hosting injects FIREBASE_WEBAPP_CONFIG automatically; for local production testing set ALLOW_PROD_LOCAL=true explicitly.',
-    );
-  }
-
   if (firebaseConfigString) {
     try {
       cachedConfig = JSON.parse(firebaseConfigString) as FirebaseOptions;
@@ -56,16 +50,23 @@ function parseFirebaseConfig(): FirebaseOptions {
       'Provide NEXT_PUBLIC_FIREBASE_* variables in .env.local for full functionality.'
     );
 
-    cachedConfig = {
-      apiKey: 'demo-api-key',
-      authDomain: 'demo.firebaseapp.com',
-      projectId: 'demo-project',
-      storageBucket: 'demo-project.appspot.com',
-      messagingSenderId: 'demo-sender',
-      appId: 'demo-app',
-    };
+    // Avoid throwing during Next.js build when config is absent. The app will error in the browser
+    // if Firebase usage is attempted without real credentials.
+    if (typeof window === 'undefined') {
+      cachedConfig = {
+        apiKey: 'demo-api-key',
+        authDomain: 'demo.firebaseapp.com',
+        projectId: 'demo-project',
+        storageBucket: 'demo-project.appspot.com',
+        messagingSenderId: 'demo-sender',
+        appId: 'demo-app',
+      };
+      return cachedConfig;
+    }
 
-    return cachedConfig;
+    throw new Error(
+      'Firebase configuration is missing. Provide NEXT_PUBLIC_FIREBASE_* variables in .env.local.',
+    );
   }
 
   const missingKeys = Object.entries(configFromEnv)
