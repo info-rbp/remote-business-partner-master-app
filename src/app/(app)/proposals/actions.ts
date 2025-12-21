@@ -2,6 +2,7 @@
 import { db } from '@/lib/db';
 import { redirect } from "next/navigation";
 import { verifyRequestIdentity } from '@/lib/identity-server';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 export async function createProposal(formData: FormData) {
   'use server'
@@ -21,6 +22,27 @@ export async function createProposal(formData: FormData) {
   };
 
   const ref = await db.collection('orgs').doc(orgId).collection('proposals').add(proposal);
+
+  // Write audit log for proposal creation
+  try {
+    await addDoc(collection(db, `orgs/${orgId}/auditLogs`), {
+      orgId,
+      eventType: 'proposal_created',
+      eventDescription: `Proposal created: ${proposal.title}`,
+      actor: uid,
+      actorRole: 'staff',
+      targetType: 'proposal',
+      targetId: ref.id,
+      targetName: proposal.title,
+      metadata: {
+        status: proposal.status,
+      },
+      timestamp: serverTimestamp(),
+    });
+  } catch (auditError) {
+    console.error('Failed to write audit log:', auditError);
+    // Don't fail the proposal creation if audit logging fails
+  }
 
   redirect(`/proposals/${ref.id}/preview`);
 }

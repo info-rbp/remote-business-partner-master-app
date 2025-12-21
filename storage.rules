@@ -33,6 +33,20 @@ service firebase.storage {
       allow read, write: if isOrgMember(orgId) && isValidDateSegments(year, month);
     }
 
+    // Project scoped client uploads (clients can upload only here)
+    match /orgs/{orgId}/projects/{projectId}/client_uploads/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, memberClientId(member(orgId)), 'project', projectId, 'client_uploads');
+      allow write: if isValidDateSegments(year, month)
+        && canClientUpload(orgId, memberClientId(member(orgId)), 'project', projectId);
+    }
+
+    // Project reference materials (staff-only)
+    match /orgs/{orgId}/projects/{projectId}/reference/{year}/{month}/{fileName} {
+      allow read: if canReadFile(orgId, null, 'project', projectId, 'reference');
+      allow write: if isValidDateSegments(year, month)
+        && canStaffUpload(orgId, 'project', projectId, null);
+    }
+
     match /orgs/{orgId}/templates/{templateType}/{year}/{month}/{fileName} {
       allow read, write: if isOrgMember(orgId) && isValidDateSegments(year, month);
     }

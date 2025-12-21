@@ -1,11 +1,43 @@
 
-import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import { VertexAI } from "@google-cloud/vertexai";
 import { bootstrapOrg, getIdentity } from "./org";
+import { logProjectCreated } from "./audit-logging";
+
+// Phase 7 governance & flags
+import { checkRedFlags, onClientRequestCreated, onDeliverableUpdated, onChangeRequestWrite, onRiskCreated, onDecisionCreated } from './phase7';
+// Phase 8 knowledge extraction & health
+import { extractKnowledgeCandidates, onProjectCompleted, onProposalWithKnowledge, checkKnowledgeHealth, onKnowledgeItemCreated, onDebriefSubmitted, onCandidateReviewed } from './phase8';
+// Phase 9 proof & reputation engine
+import { onProjectCompletedPhase9, onClientApprovalRequested, checkProofApprovalExpiry, onProofPublished, onProofApprovalRevoked, onProofArchived, onProofUsageRecorded } from './phase9';
+// Phase 10 commercial performance
+import { onProjectCreatedFinancials, onDiscountApplied, onMarginEstimated, onTimeToCashSlow, monthlyCommercialHealthCheck } from './phase10';
+// Phase 11 operating rhythm
+import { generateWeeklyOperatingSummary, checkUnacknowledgedSummaries, checkOverdueDecisions, onOperatingSummaryAcknowledged, onDecisionStatusChanged } from './phase11';
+// Phase 13 client intelligence
+import { generateClientIntelligence, onUpdatePublishedGenerateClientIntelligence } from './phase13';
+
+// Phase 4 AI Functions
+import { generateProposalDraft } from './ai/proposal-generation';
+import { regenerateProposalSection } from './ai/section-regeneration';
+import { analyzeProposalRisk } from './ai/proposal-risk-analysis';
+import { generateEngagementSummary } from './ai/engagement-intelligence';
+import { detectEngagementRisk } from './ai/risk-detection';
+import {
+  extractReusableInsights,
+  draftCaseStudy,
+  generateDecisionBrief,
+  weeklyPipelineHealthReport,
+  weeklyDeliveryHealthReport,
+  getClientEngagementSummary,
+} from './ai/additional-functions';
+import { acknowledgeAiOutput } from './ai/acknowledge';
+import { identifyCrossProjectPatterns } from './ai/patterns';
+>>>>>>> Stashed changes
 
 // Set the region for all functions in this file
 setGlobalOptions({ region: "us-central1" });
@@ -20,6 +52,84 @@ const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT, location: "
 const generativeModel = vertexAI.getGenerativeModel({
     model: "gemini-pro",
 });
+
+// ============================================================================
+// PHASE 4: AI & AUTOMATION FUNCTIONS
+// ============================================================================
+
+// Phase 4.2: Proposal Draft Generation
+export { generateProposalDraft };
+
+// Phase 4.3: Section-Level Regeneration  
+export { regenerateProposalSection };
+
+// Phase 4.4: Proposal Risk Analysis
+export { analyzeProposalRisk };
+
+// Phase 4.5: Engagement Intelligence
+export { generateEngagementSummary };
+
+// Phase 4.6: Early Warning & Risk Signals
+export { detectEngagementRisk };
+
+// Phase 4.7: Knowledge Extraction & Reuse
+export { extractReusableInsights };
+
+// Phase 4.8: Proof & Case Study Drafting
+export { draftCaseStudy };
+
+// Phase 4.9: Decision Briefs
+export { generateDecisionBrief };
+
+// Phase 4.10: AI in the Operating Rhythm
+export { weeklyPipelineHealthReport, weeklyDeliveryHealthReport };
+
+// Phase 4.11: Client-Facing AI
+export { getClientEngagementSummary };
+export { acknowledgeAiOutput };
+
+// Phase 5: Proposal acceptance
+export { acceptProposal } from './proposals/acceptance';
+
+// Phase 5.7: Access Logging & Governance
+export { logProposalAccess, getProposalAccessHistory } from './proposals/access-logging';
+export { revokeShareLink, getProposalShareLinks } from './proposals/share-revocation';
+
+// ============================================================================
+// PHASE 7: Governance & Scope Control
+// ============================================================================
+export { checkRedFlags, onClientRequestCreated, onDeliverableUpdated, onChangeRequestWrite, onRiskCreated, onDecisionCreated };
+
+// ============================================================================
+// PHASE 8: Knowledge Capture & Reuse
+// ============================================================================
+export { extractKnowledgeCandidates, onProjectCompleted, onProposalWithKnowledge, checkKnowledgeHealth, onKnowledgeItemCreated, onDebriefSubmitted, onCandidateReviewed };
+
+// ============================================================================
+// PHASE 9: Proof, Reputation & Content Engine
+// ============================================================================
+export { onProjectCompletedPhase9, onClientApprovalRequested, checkProofApprovalExpiry, onProofPublished, onProofApprovalRevoked, onProofArchived, onProofUsageRecorded };
+
+// ============================================================================
+// PHASE 10: Commercial Performance & Financial Intelligence
+// ============================================================================
+export { onProjectCreatedFinancials, onDiscountApplied, onMarginEstimated, onTimeToCashSlow, monthlyCommercialHealthCheck };
+
+// ============================================================================
+// PHASE 11: Operating Rhythm & Internal Management
+// ============================================================================
+export { generateWeeklyOperatingSummary, checkUnacknowledgedSummaries, checkOverdueDecisions, onOperatingSummaryAcknowledged, onDecisionStatusChanged };
+export { identifyCrossProjectPatterns };
+
+// ============================================================================
+// PHASE 13: Client Self-Service Intelligence
+// ============================================================================
+export { generateClientIntelligence, onUpdatePublishedGenerateClientIntelligence };
+
+// ============================================================================
+// LEGACY FUNCTIONS (to be deprecated in favor of Phase 4 functions)
+// ============================================================================
+
 
 export const generateProposal = onCall(async (request) => {
   if (request.app == undefined) {
@@ -506,7 +616,7 @@ export const convertProposalToProject = onCall(async (request) => {
       throw new HttpsError("already-exists", "Proposal already converted");
     }
 
-    // Create project
+    // Create project (Phase 6 schema baseline)
     const projectRef = await db.collection(`orgs/${orgId}/projects`).add({
       orgId,
       name: proposal.title,
@@ -522,30 +632,19 @@ export const convertProposalToProject = onCall(async (request) => {
       ),
       budget: proposal.pricing?.totalAmount,
       currency: proposal.pricing?.currency || 'AUD',
-      projectManager: request.auth.uid,
-      teamMembers: [request.auth.uid],
+      projectManager: request.auth!.uid,
+      teamMembers: [request.auth!.uid],
       clientUsers: proposal.clientId ? [proposal.clientId] : [],
-      milestones: (proposal.timeline?.milestones || []).map((m: unknown, i: number) => ({
-        ...(m as object),
-        id: `milestone-${i + 1}`,
-        status: 'pending',
-        owner: request.auth.uid,
-      })),
-      deliverables: (proposal.deliverables || []).map((d: unknown, i: number) => ({
-        ...(d as object),
-        id: `deliverable-${i + 1}`,
-        status: 'not-started',
-        owner: request.auth.uid,
-        revisionCount: 0,
-        maxRevisions: 3,
-      })),
+      // Legacy arrays kept temporarily for backward compatibility
+      milestones: [],
+      deliverables: [],
       sourceProposalId: proposalId,
       proposalSnapshot: proposal,
       healthStatus: 'green',
       progressPercentage: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: request.auth.uid,
+      createdBy: request.auth!.uid,
     });
 
     const projectId = projectRef.id;
@@ -568,8 +667,53 @@ export const convertProposalToProject = onCall(async (request) => {
     ];
 
     const batch = db.batch();
-    
-    onboardingTasks.forEach((task, i) => {
+
+    // Phase 6.4: Create Milestones subcollection from proposal snapshot
+    const milestoneTemplates: Array<{ name: string; description?: string; dueOffset: number }> =
+      (proposal.timeline?.milestones || []).map((m: any) => ({
+        name: m.name,
+        description: m.description,
+        dueOffset: m.dueOffset || 0,
+      }));
+    milestoneTemplates.forEach((m, i) => {
+      const msRef = db.collection(`orgs/${orgId}/projects/${projectId}/milestones`).doc();
+      batch.set(msRef, {
+        id: msRef.id,
+        title: m.name,
+        description: m.description || '',
+        order: i + 1,
+        dueDate: admin.firestore.Timestamp.fromMillis(
+          Date.now() + (m.dueOffset || 0) * 24 * 60 * 60 * 1000
+        ),
+        status: 'not_started',
+        ownerId: request.auth!.uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    // Phase 6.4: Create Deliverables subcollection
+    const deliverableTemplates: Array<{ name: string; description: string; milestoneId?: string }> =
+      (proposal.deliverables || []).map((d: any) => ({
+        name: d.name,
+        description: d.description || '',
+        milestoneId: d.milestoneId,
+      }));
+    deliverableTemplates.forEach((d) => {
+      const dRef = db.collection(`orgs/${orgId}/projects/${projectId}/deliverables`).doc();
+      batch.set(dRef, {
+        id: dRef.id,
+        milestoneId: d.milestoneId || null,
+        title: d.name,
+        description: d.description,
+        status: 'draft',
+        version: 1,
+        requiresClientApproval: true,
+      });
+    });
+
+    // Seed onboarding tasks in org activities (legacy operational queue)
+    onboardingTasks.forEach((task) => {
       const activityRef = db.collection(`orgs/${orgId}/activities`).doc();
       batch.set(activityRef, {
         orgId,
@@ -578,17 +722,45 @@ export const convertProposalToProject = onCall(async (request) => {
         status: 'pending',
         priority: 'high',
         dueDate: admin.firestore.Timestamp.fromMillis(Date.now() + task.dueOffset * 24 * 60 * 60 * 1000),
-        owner: request.auth.uid,
+        owner: request.auth!.uid,
         linkedEntityType: 'project',
         linkedEntityId: projectId,
         linkedEntityName: proposal.title,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdBy: request.auth.uid,
+        createdBy: request.auth!.uid,
       });
     });
 
+    // Log project activity timeline entry
+    const projectActivityRef = db.collection(`orgs/${orgId}/projects/${projectId}/activity`).doc();
+    batch.set(projectActivityRef, {
+      id: projectActivityRef.id,
+      actorId: request.auth!.uid,
+      actorRole: 'staff',
+      action: 'project_created',
+      entityType: 'project',
+      entityId: projectId,
+      metadata: { sourceProposalId: proposalId },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     await batch.commit();
+
+    // Write audit log for project creation
+    await logProjectCreated({
+      orgId,
+      projectId,
+      projectName: proposal.title,
+      createdBy: request.auth!.uid,
+      sourceProposalId: proposalId,
+      clientId: proposal.clientId,
+      metadata: {
+        companyName: proposal.companyName,
+        budget: proposal.pricing?.totalAmount,
+        currency: proposal.pricing?.currency,
+      },
+    });
 
     return { projectId };
   } catch (error: unknown) {

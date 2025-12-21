@@ -2,6 +2,7 @@
 import { initializeApp, cert, getApps, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import * as firestore from "firebase-admin/firestore";
 
 let adminApp: App | undefined;
 
@@ -35,6 +36,7 @@ export const admin = {
   app: initAdminApp(),
   db: getFirestore(initAdminApp()),
   auth: getAuth(initAdminApp()),
+  firestore,
 };
 
 // Compatibility export for existing imports

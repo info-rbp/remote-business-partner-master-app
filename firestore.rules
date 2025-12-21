@@ -82,6 +82,19 @@ service cloud.firestore {
       allow write: if isAuthenticated() && isAdmin(orgId);
 
       // ======================================================================
+      // ORG-SCOPED AUDIT LOGS
+      // ======================================================================
+
+      match /auditLogs/{logId} {
+        // Admins can read audit logs within their org
+        allow read: if isAuthenticated() && isAdmin(orgId);
+        // Only Cloud Functions can write
+        allow write: if false;
+      }
+      allow read: if isAuthenticated() && isStaff(orgId);
+      allow write: if isAuthenticated() && isAdmin(orgId);
+
+      // ======================================================================
       // MEMBERS
       // ======================================================================
 
@@ -172,8 +185,85 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedAt', 'approvedBy', 'rejectedAt', 'rejectionReason', 'revisionCount']);
         }
 
-        // Clients can approve/reject deliverables
-        allow update: if isAuthenticated() && canClientUpdateDeliverable();
+        // Clients can approve/reject deliverables on subcollection docs (see below)
+        allow update: if false;
+
+        // -----------------------------
+        // Subcollections
+        // -----------------------------
+        // Client Intelligence Snapshots (Phase 13)
+        match /clientIntelligence/{snapshotId} {
+          // Staff/admin full access
+          allow read, write: if isAuthenticated() && isStaff(orgId);
+          // Clients can read published snapshots for projects they have access to
+          allow read: if isAuthenticated()
+            && isClient(orgId)
+            && hasProjectAccess(orgId, projectId)
+            && resource.data.published == true;
+          // No client writes
+          allow write: if false;
+        }
+
+        // Milestones
+        match /milestones/{milestoneId} {
+          // Staff manage milestones
+          allow read, write: if isAuthenticated() && isStaff(orgId);
+          // Clients can read milestones for projects they can access
+          allow read: if isAuthenticated() && isClient(orgId) && hasProjectAccess(orgId, projectId);
+        }
+
+        // Deliverables
+        match /deliverables/{deliverableId} {
+          // Staff full access
+          allow read, write: if isAuthenticated() && isStaff(orgId);
+          // Clients can read deliverables for accessible projects
+          allow read: if isAuthenticated() && isClient(orgId) && hasProjectAccess(orgId, projectId);
+          // Clients can update limited fields to approve or request changes
+          allow update: if isAuthenticated()
+            && isClient(orgId)
+            && hasProjectAccess(orgId, projectId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'approvedAt', 'submittedAt', 'version'
+            ]);
+        }
+
+        // Weekly updates
+        match /updates/{updateId} {
+          // Staff full access
+          allow read, write: if isAuthenticated() && isStaff(orgId);
+          // Clients can read published updates only
+          allow read: if isAuthenticated()
+            && isClient(orgId)
+            && hasProjectAccess(orgId, projectId)
+            && resource.data.published == true;
+        }
+
+        // Client requests
+        match /requests/{requestId} {
+          // Staff full access
+          allow read, write: if isAuthenticated() && isStaff(orgId);
+          // Clients can create and read their requests within accessible projects
+          allow create: if isAuthenticated() && isClient(orgId) && hasProjectAccess(orgId, projectId);
+          allow read: if isAuthenticated() && isClient(orgId) && hasProjectAccess(orgId, projectId);
+          // Clients can update limited fields
+          allow update: if isAuthenticated()
+            && isClient(orgId)
+            && hasProjectAccess(orgId, projectId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'status', 'updatedAt']);
+        }
+
+        // Activity timeline
+        match /activity/{activityId} {
+          // Staff full visibility
+          allow read: if isAuthenticated() && isStaff(orgId);
+          allow write: if isAuthenticated() && isStaff(orgId);
+          // Clients see only their actions and published events
+          function isPublishedEvent() {
+            return resource.data.action in ['project_created','update_published','deliverable_submitted','deliverable_approved','request_opened','request_resolved'];
+          }
+          allow read: if isAuthenticated() && isClient(orgId) && hasProjectAccess(orgId, projectId)
+            && (resource.data.actorId == request.auth.uid || isPublishedEvent());
+        }
       }
 
       // ======================================================================
@@ -335,6 +425,15 @@ service cloud.firestore {
 
       match /settings/{doc=**} {
         allow read, write: if isAuthenticated() && isAdmin(orgId);
+      }
+
+      // ======================================================================
+      // AI EXECUTION LOGS (internal only)
+      // ======================================================================
+
+      match /aiExecutions/{executionId} {
+        // Staff/admin can read and write acknowledgements
+        allow read, write: if isAuthenticated() && isStaff(orgId);
       }
     }
   }

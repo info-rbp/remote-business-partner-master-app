@@ -1,5 +1,26 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## What this app does
+
+DealFlow AI is a Firebase-backed Next.js SaaS for agencies/consultancies to manage the client lifecycle end to end:
+- Public site + lead capture → CRM intake
+- Proposal drafting, preview, sharing, acceptance, and conversion to projects
+- Client portal with shareable proposal links and acceptance flows
+- Delivery visibility: projects, milestones, risks, decisions, knowledge, proof/case studies
+- Governance and RBAC via Firebase Auth claims; App Check support for callable functions
+- Cloud Functions power AI generation, audit logs, commercial/margin checks, operating rhythm summaries, and client intelligence snapshots
+- Runs on Firebase App Hosting with Firestore as the primary store
+
+## How to run it
+
+Prereqs: Node 20+, npm, Firebase CLI (for emulators/deploys).
+
+1) Install deps: `npm ci`
+2) Copy `.env.example` → `.env.local` and set client Firebase web config (`NEXT_PUBLIC_FIREBASE_*`). For App Hosting, the platform injects `FIREBASE_WEBAPP_CONFIG` automatically.
+3) For App Check (if enforced), set `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` or `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY`.
+4) For server/admin features (seeding, SSR calls to Firestore), set `FIREBASE_SERVICE_ACCOUNT` or point to the Firestore emulator with `FIREBASE_EMULATOR_HOST`/`FIRESTORE_EMULATOR_HOST`.
+5) Run dev server: `npm run dev` (uses `APP_ENV=development` by default). Build: `npm run build`.
+
 ## Getting Started
 
 First, run the development server:

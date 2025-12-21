@@ -20,6 +20,12 @@ export const CLIENT_VAULT_CATEGORIES = [
   'misc',
 ] as const;
 
+export const PROJECT_VAULT_CATEGORIES = [
+  'deliverables',
+  'client_uploads',
+  'reference',
+] as const;
+
 function pad(value: number) {
   return value.toString().padStart(2, '0');
 }
@@ -73,11 +79,17 @@ export function buildStoragePath({
         clientId,
       };
     case 'project':
-      return {
-        storagePath: `orgs/${orgId}/projects/${entityId}/deliverables/${year}/${month}/${fileId}_${safeFilename}`,
-        category: 'deliverables',
-        clientId,
-      };
+      {
+        const projectCategory = category ?? 'deliverables';
+        if (!PROJECT_VAULT_CATEGORIES.includes(projectCategory as (typeof PROJECT_VAULT_CATEGORIES)[number])) {
+          throw new Error(`Invalid project vault category: ${projectCategory}.`);
+        }
+        return {
+          storagePath: `orgs/${orgId}/projects/${entityId}/${projectCategory}/${year}/${month}/${fileId}_${safeFilename}`,
+          category: projectCategory,
+          clientId,
+        };
+      }
     case 'template': {
       const templateType = category ?? entityId;
       return {

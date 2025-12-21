@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDoc, getDocs, query, setDoc, Timestamp, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, Timestamp, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { DocumentVault } from "@/app/components/document-vault";
 import { getDb } from "@/lib/firebase-client";
 import { useIdentity } from "@/app/components/IdentityGate";
@@ -88,6 +88,29 @@ export default function PreviewProposalPage({ params }: { params: { id: string }
       const createdAt = Timestamp.now();
       const newShare: ProposalShare = { proposalId: params.id, token, expiresAt, createdAt, orgId };
       await setDoc(doc(sharesRef, token), newShare);
+      
+      // Write audit log for share link creation
+      try {
+        await addDoc(collection(getDb(), `orgs/${orgId}/auditLogs`), {
+          orgId,
+          eventType: 'proposal_sent',
+          eventDescription: `Share link created for proposal: ${proposal?.title || 'Unknown'}`,
+          actor: 'system', // In a real scenario, get from auth context
+          actorRole: 'staff',
+          targetType: 'proposal',
+          targetId: params.id,
+          targetName: proposal?.title,
+          metadata: {
+            token,
+            expiresAt,
+          },
+          timestamp: serverTimestamp(),
+        });
+      } catch (auditError) {
+        console.error('Failed to write audit log:', auditError);
+        // Don't fail the share creation if audit logging fails
+      }
+      
       setShare(newShare);
     };
 

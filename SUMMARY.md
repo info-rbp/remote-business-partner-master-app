@@ -2,7 +2,7 @@
 
 ## ✅ Completed Implementation
 
-I've successfully implemented a comprehensive end-to-end SaaS platform with all requested features. Here's what has been built:
+I've successfully implemented a comprehensive end-to-end SaaS platform with all requested features through Phase 11. Here's what has been built:
 
 ## 🏗️ Core Architecture
 
@@ -125,7 +125,7 @@ I've successfully implemented a comprehensive end-to-end SaaS platform with all 
 - **Mitigation Tracking**: Owner, due date, resolution
 - **Project Linking**: Risks tied to specific projects/proposals
 
-## 📚 Knowledge Capital & Proof ✅
+## ✅ 8. Knowledge Capital & Proof ✅
 
 ### Knowledge Base
 - **Types**: playbook, template, framework, checklist, lesson
@@ -141,12 +141,79 @@ I've successfully implemented a comprehensive end-to-end SaaS platform with all 
   - Avoid list
 - **Reusable Assets**: Templates, code, documents, processes
 
-### Proof Engine
+### Proof Engine (Phase 9)
 - **Types**: case-study, testimonial, metric, reference
 - **Content**: Challenge, solution, results, testimonials, metrics
-- **Approval Workflow**: Client approval tracking
+- **Approval Workflow**: Client approval tracking with tokens and expiry
 - **Visibility**: public, restricted, private
 - **Review Requests**: Client feedback collection
+- **Cloud Functions**:
+  - `onProjectCompletedPhase9` - Trigger outcome capture workflow
+  - `onClientApprovalRequested` - Send approval emails
+  - `checkProofApprovalExpiry` - Monthly expiry check with auto-revert
+  - `onProofPublished` - Audit logging and website rebuild hooks
+  - `onProofApprovalRevoked` - Auto-unpublish and audit trail
+  - `onProofArchived` - Cleanup and archival logging
+  - `onProofUsageRecorded` - Track usage metrics
+
+## ✅ 9. Commercial Performance (Phase 10) ✅
+
+### Financial Intelligence
+- **Engagement Financials**: Quoted value, pricing model, discounts, effort tracking
+- **Margin Estimation**: Org-configured thresholds (weak/healthy/strong)
+- **Time-to-Cash Tracking**: 
+  - Proposal sent → accepted → deposit → project start → final payment
+  - Days tracked at each milestone
+- **Commercial Flags**: Low margin, large discounts, slow cash flow
+- **Cloud Functions**:
+  - `onProjectCreatedFinancials` - Auto-initialize financial records from proposals
+  - `onDiscountApplied` - Flag discounts exceeding org thresholds
+  - `onMarginEstimated` - Flag weak margins, celebrate strong ones
+  - `onTimeToCashSlow` - Alert on slow acceptance/deposit times
+  - `monthlyCommercialHealthCheck` - Aggregate commercial metrics monthly
+
+### Margin Engine
+- **Estimation**: Uses quoted value, estimated costs, effort, discounts
+- **Banding**: Weak / Healthy / Strong based on org settings
+- **Tracking**: Actual vs estimated, revision history
+- **Flags**: Auto-generated when margins fall below thresholds
+
+### Discount Management
+- **Types**: Percentage or fixed amount
+- **Rationale**: Required for all discounts
+- **Approval**: Flags large discounts for management review
+- **Audit**: Full trail of who approved and why
+
+## ✅ 10. Operating Rhythm (Phase 11) ✅
+
+### Weekly Operating Summaries
+- **Auto-Generation**: Every Monday at 8am
+- **Snapshot Data**:
+  - Pipeline: New leads, proposals sent/accepted, stalled deals
+  - Delivery: Active projects, milestones due/overdue, pending approvals
+  - Risk: Open risks by severity, change requests, escalations
+  - Commercial: Below-margin projects, slow cash flags, avg margin
+- **Human Input**: Highlights, concerns, decisions required, actions agreed
+- **Workflow**: Generated → Reviewed → Acknowledged → Immutable
+- **Cloud Functions**:
+  - `generateWeeklyOperatingSummary` - Auto-generate summaries every Monday
+  - `checkUnacknowledgedSummaries` - Daily reminder for pending reviews
+  - `checkOverdueDecisions` - Daily escalation for overdue decisions
+  - `onOperatingSummaryAcknowledged` - Spawn decision tracking entries
+  - `onDecisionStatusChanged` - Notify on resolution/deferral
+
+### Decision Tracking
+- **Origin**: From summaries or ad-hoc creation
+- **Status**: open → in_progress → resolved/deferred
+- **Due Dates**: Automatic escalation when overdue
+- **Ownership**: Assigned to specific team members
+- **Resolution**: Outcome tracking and audit trail
+
+### Operating Notifications
+- **Types**: Summary ready, summary unacknowledged, decision overdue, decision resolved
+- **Severity**: info, warning, high
+- **Actions**: Dismissible, snoozable
+- **Delivery**: In-app notifications (email integration ready)
 
 ## 🔍 Governance & Auditability ✅
 
@@ -199,6 +266,11 @@ I've successfully implemented a comprehensive end-to-end SaaS platform with all 
   - Org bootstrapping
   - AI proposal generation
   - Proposal to project conversion
+- ✅ [functions/src/phase7.ts](functions/src/phase7.ts) - Governance & scope control triggers
+- ✅ [functions/src/phase8.ts](functions/src/phase8.ts) - Knowledge extraction & health monitoring
+- ✅ [functions/src/phase9.ts](functions/src/phase9.ts) - Proof approval, publishing, archival workflows
+- ✅ [functions/src/phase10.ts](functions/src/phase10.ts) - Commercial tracking, margin flags, health checks
+- ✅ [functions/src/phase11.ts](functions/src/phase11.ts) - Operating summaries, decision tracking, notifications
 
 ### Frontend Pages
 - ✅ [src/app/services/page.tsx](src/app/services/page.tsx) - Public services page

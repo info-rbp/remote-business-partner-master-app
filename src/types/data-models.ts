@@ -1025,3 +1025,215 @@ export interface LinkedEntity {
 }
 
 export type ServerTimestamp = FieldValue | Timestamp;
+
+// ============================================================================
+// PHASE 6: DELIVERY DATA MODEL (Firestore-first)
+// ----------------------------------------------------------------------------
+// These types map 1:1 to Firestore collections and subcollections defined in
+// Phase 6.1. Do not build UI before these are stable.
+// ----------------------------------------------------------------------------
+
+export type DeliveryProjectStatus =
+  | 'onboarding'
+  | 'active'
+  | 'paused'
+  | 'completed'
+  | 'archived';
+
+export type DeliveryRiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
+
+// orgs/{orgId}/projects/{projectId}
+export interface DeliveryProject {
+  id: string;
+  orgId: string;
+  proposalId: string; // snapshot reference
+  clientId: string;
+  status: DeliveryProjectStatus;
+  startDate: Timestamp;
+  targetEndDate?: Timestamp;
+  ownerId: string;
+  riskLevel?: DeliveryRiskLevel; // derived later
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'blocked' | 'complete';
+
+// projects/{projectId}/milestones/{milestoneId}
+export interface ProjectMilestone6 {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+  dueDate?: Timestamp;
+  status: MilestoneStatus;
+  ownerId?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type DeliverableReviewStatus =
+  | 'draft'
+  | 'submitted'
+  | 'in_review'
+  | 'changes_requested'
+  | 'approved';
+
+// projects/{projectId}/deliverables/{deliverableId}
+export interface ProjectDeliverable6 {
+  id: string;
+  milestoneId?: string;
+  title: string;
+  description?: string;
+  status: DeliverableReviewStatus;
+  version: number;
+  submittedAt?: Timestamp;
+  approvedAt?: Timestamp;
+  requiresClientApproval: boolean;
+}
+
+// projects/{projectId}/updates/{updateId}
+export interface ProjectUpdate6 {
+  id: string;
+  periodStart: Timestamp;
+  periodEnd: Timestamp;
+  summary: string;
+  progress?: string;
+  risks?: string;
+  decisionsNeeded?: string;
+  nextSteps?: string;
+  published: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+}
+
+export type ClientRequestType6 = 'question' | 'request' | 'issue';
+export type ClientRequestStatus6 = 'open' | 'in_progress' | 'resolved';
+export type SubmittedBy6 = 'client' | 'internal';
+
+// projects/{projectId}/requests/{requestId}
+export interface ClientRequest6 {
+  id: string;
+  submittedBy: SubmittedBy6;
+  type: ClientRequestType6;
+  description: string;
+  status: ClientRequestStatus6;
+  linkedDeliverableId?: string;
+  createdAt: Timestamp;
+  resolvedAt?: Timestamp;
+}
+
+// projects/{projectId}/activity/{activityId}
+export interface ProjectActivity6 {
+  id: string;
+  actorId: string;
+  actorRole: UserRole; // 'client' | 'staff' | 'admin'
+  action: string;
+  entityType: 'project' | 'milestone' | 'deliverable' | 'update' | 'request' | string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Timestamp;
+}
+
+// ============================================================================
+// PHASE 7: GOVERNANCE & SCOPE CONTROL (Firestore-first)
+// ----------------------------------------------------------------------------
+// These models implement strict change control, risks, decisions and red flags
+// as subcollections under org-scoped projects: `orgs/{orgId}/projects/{projectId}`.
+// ----------------------------------------------------------------------------
+
+export type ChangeRequest7Status =
+  | 'draft'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'repriced';
+
+export interface ChangeRequest7Impact {
+  timeImpact?: number; // hours or days (interpretation controlled by UI)
+  costImpact?: number; // currency amount
+  timelineImpact?: number; // days/weeks expressed as numeric days
+  scopeImpact?: string; // free-form explanation
+  assessedBy?: string; // staff/admin uid
+  assessedAt?: Timestamp;
+}
+
+// projects/{projectId}/changeRequests/{changeRequestId}
+export interface ChangeRequest7 {
+  id: string;
+  orgId: string;
+  projectId: string;
+  title: string;
+  description: string; // what’s being requested
+  source: 'client' | 'internal';
+  linkedRequestId?: string; // Phase 6 client request id
+  status: ChangeRequest7Status;
+  requestedBy: { userId: string; role: UserRole };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  impact?: ChangeRequest7Impact; // required before approve/reprice
+  decisionNotes?: string; // rationale shown internally
+  repricing?: {
+    revisedCost?: number;
+    revisedTimelineDays?: number;
+    revisedMilestones?: string[]; // optional descriptors
+    linkedProposalVersionId?: string; // or variation record id
+  };
+}
+
+export type Risk7Category = 'delivery' | 'scope' | 'client' | 'financial' | 'dependency';
+export type Risk7Likelihood = 'low' | 'medium' | 'high';
+export type Risk7Impact = 'low' | 'medium' | 'high';
+export type Risk7Status = 'open' | 'mitigated' | 'accepted' | 'closed';
+
+// Derived severity helper (kept alongside data for convenience)
+export type Risk7Severity = 'low' | 'medium' | 'high' | 'critical';
+
+// projects/{projectId}/risks/{riskId}
+export interface Risk7 {
+  id: string;
+  orgId: string;
+  projectId: string;
+  title: string;
+  description: string;
+  category: Risk7Category;
+  likelihood: Risk7Likelihood;
+  impact: Risk7Impact;
+  severity: Risk7Severity; // derived on write
+  mitigationPlan?: string;
+  ownerId: string; // required
+  status: Risk7Status;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  closedAt?: Timestamp; // retained for history
+}
+
+export type Decision7Type = 'scope' | 'timeline' | 'cost' | 'priority';
+
+// projects/{projectId}/decisions/{decisionId}
+export interface Decision7 {
+  id: string;
+  orgId: string;
+  projectId: string;
+  title: string;
+  context: string; // why this decision existed
+  optionsConsidered?: string[] | string;
+  decisionOutcome: string;
+  decisionType: Decision7Type;
+  relatedChangeRequestId?: string;
+  decidedBy: string;
+  decidedAt: Timestamp;
+  // Immutable: append-only philosophy (edits create new version entries)
+}
+
+export interface RedFlag7 {
+  id: string; // deterministic per entity
+  orgId: string;
+  projectId: string;
+  level: 'info' | 'warning' | 'critical';
+  source: 'project' | 'milestone' | 'deliverable';
+  sourceId?: string;
+  rule: 'milestone_overdue' | 'deliverable_stuck' | 'client_inactive' | 'update_missing' | 'unresolved_changes';
+  message: string;
+  detectedAt: Timestamp;
+}

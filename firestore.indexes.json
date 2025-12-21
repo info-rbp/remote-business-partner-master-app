@@ -30,7 +30,7 @@
       "collectionGroup": "auditLogs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "entityId", "order": "ASCENDING" },
+        { "fieldPath": "entityType", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
@@ -42,6 +42,40 @@
         { "fieldPath": "entityId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+    {
+      "collectionGroup": "projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orgId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "risks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "severity", "order": "DESCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "financials",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "proposalType", "order": "ASCENDING" },
+        { "fieldPath": "estimatedMarginBand", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "aiExecutions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "entityType", "order": "ASCENDING" },
+        { "fieldPath": "executionTimestamp", "order": "DESCENDING" }
       ]
     }
   ],

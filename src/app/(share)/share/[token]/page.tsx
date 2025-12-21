@@ -1,7 +1,23 @@
 import { db } from "@/lib/db";
+import { ProposalRenderer } from "@/app/components/proposal-renderer";
+import { AcceptanceForm } from "@/app/components/acceptance-form";
+import { DecisionSummary } from "@/app/components/decision-summary";
 
-type Proposal = { title: string; content: string };
-type ProposalShare = { proposalId: string; token: string; expiresAt?: FirebaseFirestore.Timestamp; orgId: string };
+type Proposal = {
+  title: string;
+  content?: string;
+  scope?: any;
+  deliverables?: any;
+  timeline?: any;
+  pricing?: any;
+};
+type ProposalShare = { 
+  proposalId: string; 
+  token: string; 
+  expiresAt?: FirebaseFirestore.Timestamp; 
+  orgId: string;
+  snapshotVersion?: string;
+};
 
 function ShareNotFound({ message }: { message: string }) {
   return (
@@ -56,6 +72,13 @@ export default async function SharePage({ params }: { params: { token: string } 
 
   const proposal = proposalSnapshot.data() as Proposal | undefined;
 
+  // Load snapshot (immutable)
+  const version = shareData.snapshotVersion || proposalSnapshot.data()?.currentSnapshotVersion;
+  const snapDoc = version
+    ? await db.collection(`proposals/${shareData.proposalId}/snapshots`).doc(version).get().catch(() => null)
+    : null;
+  const snapshot = snapDoc?.exists ? (snapDoc.data() as any) : null;
+
   if (!proposal) {
     return <ShareNotFound message="The proposal associated with this share link could not be found." />;
   }
@@ -68,7 +91,40 @@ export default async function SharePage({ params }: { params: { token: string } 
             <h1 className="text-4xl font-bold text-gray-900">{proposal.title}</h1>
             <p className="text-sm text-gray-500 mt-1">Link valid until {expiresAt.toLocaleString()}</p>
           </header>
-          <div className="prose prose-lg max-w-none text-gray-800">{proposal.content}</div>
+          <ProposalRenderer
+            title={snapshot?.content?.title || proposal.title}
+            executiveSummary={snapshot?.content?.executiveSummary}
+            diagnosis={snapshot?.content?.diagnosis}
+            scope={snapshot?.content?.scope}
+            methodology={snapshot?.content?.methodology}
+            deliverables={snapshot?.content?.deliverables}
+            timeline={snapshot?.content?.timeline}
+            pricing={snapshot?.content?.pricing}
+            assumptions={snapshot?.content?.assumptions}
+            exclusions={snapshot?.content?.exclusions}
+            acceptanceCriteria={snapshot?.content?.acceptanceCriteria}
+            nextSteps={snapshot?.content?.nextSteps}
+            terms={snapshot?.content?.terms}
+            content={snapshot?.content?.content}
+            branding={snapshot?.branding}
+          />
+
+          {/* Phase 5.6 - Decision Summary */}
+          <DecisionSummary
+            proposalTitle={proposal.title}
+            scope={snapshot?.content?.scope || proposal.scope}
+            deliverables={snapshot?.content?.deliverables}
+            timeline={snapshot?.content?.timeline}
+            nextSteps={snapshot?.content?.nextSteps}
+          />
+
+          <div className="mt-12 pt-8 border-t">
+            <AcceptanceForm
+              token={params.token}
+              proposalTitle={proposal.title}
+              snapshotVersion={version}
+            />
+          </div>
         </div>
       </main>
     </div>
