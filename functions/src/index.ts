@@ -37,7 +37,6 @@ import {
 } from './ai/additional-functions';
 import { acknowledgeAiOutput } from './ai/acknowledge';
 import { identifyCrossProjectPatterns } from './ai/patterns';
->>>>>>> Stashed changes
 
 // Set the region for all functions in this file
 setGlobalOptions({ region: "us-central1" });
