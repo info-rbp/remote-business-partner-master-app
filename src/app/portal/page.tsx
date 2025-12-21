@@ -164,7 +164,7 @@ export default function ClientPortalPage() {
             {projects.map((project) => (
               <Link
                 key={project.id}
-                href={`/portal/projects/${project.id}`}
+                href={`/projects/${project.id}`}
                 className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors block"
               >
                 <div className="flex justify-between items-start mb-4">

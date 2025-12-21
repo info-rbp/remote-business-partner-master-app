@@ -4,14 +4,14 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { FolderKanban, FileText, LogOut } from 'lucide-react';
+import { FolderKanban, LogOut } from 'lucide-react';
 
 export default function PortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
   const navLinks = [
-    { href: '/portal/projects', label: 'Projects', icon: <FolderKanban /> },
+    { href: '/projects', label: 'Projects', icon: <FolderKanban /> },
   ];
 
   const handleSignOut = async () => {
@@ -30,7 +30,7 @@ export default function PortalShell({ children }: { children: ReactNode }) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <Link href="/portal/projects" className="text-xl font-bold text-white">
+              <Link href="/projects" className="text-xl font-bold text-white">
                 Client Portal
               </Link>
               <nav className="flex items-center space-x-4">

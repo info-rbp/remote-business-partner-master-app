@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import './globals.css';
-import Header from './components/header';
 import { ToastProvider } from './components/toast';
 import { AuthProvider } from '@/lib/auth-context';
 import AppCheckInit from './components/app-check-init';
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <html lang="en">
@@ -22,8 +22,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <AppCheckInit />
-            <Header />
-            <main className="container mx-auto p-4">{children}</main>
+            {children}
           </ToastProvider>
         </AuthProvider>
       </body>
