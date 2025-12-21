@@ -72,6 +72,21 @@ To run locally against the Firestore emulator:
 
 3. With the variables set, run your usual commands (`npm run dev`, `npm run build`, `npm run lint`). The server will reuse the emulator host automatically without requiring `FIREBASE_SERVICE_ACCOUNT`.
 
+## Initial Firebase Deployment Order
+
+For the first deployment to a new Firebase project, deploy resources in this order:
+
+1. Firestore (rules and indexes)
+   firebase deploy --only firestore
+
+2. Cloud Functions
+   firebase deploy --only functions
+
+3. App Hosting (Next.js app)
+   firebase deploy --only apphosting
+
+This avoids runtime errors caused by the app calling functions or Firestore resources that do not yet exist.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
