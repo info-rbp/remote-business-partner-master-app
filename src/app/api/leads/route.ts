@@ -1,60 +1,64 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { Timestamp } from 'firebase-admin/firestore';
-import type { Lead } from '@/lib/marketing/types';
+import { NextRequest, NextResponse } from 'next/server';
+import { admin } from '@/lib/firebase-admin';
+import { Lead } from '@/types/data-models';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
-function getRequestMeta(request: Request) {
-  const url = request.headers.get('x-forwarded-host')
-    ? `${request.headers.get('x-forwarded-proto') ?? 'https'}://${request.headers.get('x-forwarded-host')}${new URL(request.url).pathname}`
-    : request.headers.get('referer') ?? undefined;
+const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID || 'default-org';
 
-  return {
-    pageUrl: request.headers.get('x-page-url') ?? url,
-    referrer: request.headers.get('referer') ?? undefined,
-  };
-}
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
 
-export async function POST(request: Request) {
-  const payload = await request.json().catch(() => null);
+    if (!data.firstName || !data.lastName || !data.email) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
 
-  if (!payload || typeof payload !== 'object') {
-    return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
-  }
-
-  if (payload.website) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const name = typeof payload.name === 'string' ? payload.name.trim() : '';
-  const email = typeof payload.email === 'string' ? payload.email.trim() : '';
-  const message = typeof payload.message === 'string' ? payload.message.trim() : '';
-  const source = payload.source === 'public_service_inquiry' ? 'public_service_inquiry' : 'public_contact';
-
-  if (!name || !email) {
-    return NextResponse.json({ ok: false, error: 'Name and email are required.' }, { status: 400 });
-  }
-
-  const { pageUrl, referrer } = getRequestMeta(request);
-  const now = Timestamp.now();
-
-  const lead: Lead = {
-    createdAt: now,
-    source,
-    name,
-    email,
-    company: typeof payload.company === 'string' ? payload.company.trim() : undefined,
-    phone: typeof payload.phone === 'string' ? payload.phone.trim() : undefined,
-    message,
-    serviceInterests: Array.isArray(payload.serviceInterests) ? payload.serviceInterests : undefined,
-    urgencyScore: typeof payload.urgencyScore === 'number' ? payload.urgencyScore : undefined,
-    pageUrl: typeof payload.pageUrl === 'string' ? payload.pageUrl : pageUrl,
-    referrer: typeof payload.referrer === 'string' ? payload.referrer : referrer,
-    crm: {
+    const leadData: Partial<Lead> = {
+      orgId: DEFAULT_ORG_ID,
+      source: data.source || 'website',
+      sourceDetail: data.sourceDetail || 'contact-form',
+      serviceInterest: data.serviceInterest || [],
+      urgency: data.urgency || 'medium',
+      fitScore: data.fitScore || 50,
       status: 'new',
-    },
-  };
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      companyName: data.companyName,
+      jobTitle: data.jobTitle,
+      message: data.message,
+      budget: data.budget,
+      timeline: data.timeline,
+      createdAt: FieldValue.serverTimestamp() as any,
+      updatedAt: FieldValue.serverTimestamp() as any,
+    };
 
-  const docRef = await db.collection('leads').add(lead);
+    const leadRef = await admin.db
+      .collection(`orgs/${DEFAULT_ORG_ID}/leads`)
+      .add(leadData);
 
-  return NextResponse.json({ ok: true, leadId: docRef.id });
+    await admin.db
+      .collection(`orgs/${DEFAULT_ORG_ID}/activities`)
+      .add({
+        orgId: DEFAULT_ORG_ID,
+        type: 'task',
+        subject: `Follow up with ${data.firstName} ${data.lastName}`,
+        description: 'New lead from website contact form',
+        status: 'pending',
+        priority: data.urgency === 'urgent' ? 'high' : 'medium',
+        dueDate: Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000),
+        linkedEntityType: 'lead',
+        linkedEntityId: leadRef.id,
+        linkedEntityName: `${data.firstName} ${data.lastName}`,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+    return NextResponse.json({ success: true, leadId: leadRef.id }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating lead:', error);
+    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
+  }
+}
 }

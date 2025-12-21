@@ -1,6 +1,8 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import Header from './components/header';
+import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
   title: 'DealFlow AI',
@@ -14,7 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-white font-sans">{children}</body>
+      <body className="bg-gray-900 text-white font-sans">
+        <AuthProvider>
+          <Header />
+          <main className="container mx-auto p-4">{children}</main>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

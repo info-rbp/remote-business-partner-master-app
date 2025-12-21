@@ -46,8 +46,7 @@ function parseFirebaseConfig(): FirebaseOptions {
 
   if (appEnv === 'development' && !configFromEnv.projectId) {
     console.warn(
-      'Firebase config missing in development environment. Falling back to demo Firebase configuration. ' +
-      'Provide NEXT_PUBLIC_FIREBASE_* variables in .env.local for full functionality.'
+      'Firebase config missing in development environment. Falling back to demo Firebase configuration. Provide NEXT_PUBLIC_FIREBASE_* variables in .env.local for full functionality.',
     );
 
     // Avoid throwing during Next.js build when config is absent. The app will error in the browser
@@ -109,7 +108,7 @@ export function getFirebaseApp(): FirebaseApp {
   return cachedApp;
 }
 
-export function getDb(): Firestore {
+function getFirebaseDb(): Firestore {
   if (cachedDb) {
     return cachedDb;
   }
@@ -181,3 +180,6 @@ export async function getAuthTokens() {
 
   return { idToken, appCheckToken: appCheckToken.token };
 }
+
+// Export functions for client components
+export { getFirebaseDb as getDb, getFirebaseAuth as getAuth };

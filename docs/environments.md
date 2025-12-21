@@ -18,6 +18,12 @@ Update these IDs if your Firebase projects differ, but keep the alias names stab
 - On Firebase App Hosting, the platform injects `FIREBASE_WEBAPP_CONFIG`; the client prefers that value automatically.
 - When `FIREBASE_SERVICE_ACCOUNT` is absent in development, the Admin SDK falls back to the Firestore emulator (default `localhost:8080`). Provide a service account or point to a running emulator before seeding or server-side data access.
 
+## App Hosting runtime variables
+
+- `FIREBASE_WEBAPP_CONFIG` is provided automatically by App Hosting and picked up by the client.
+- If App Check is enforced, set either `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` or `NEXT_PUBLIC_APP_CHECK_PUBLIC_KEY` in the App Hosting environment.
+- Configure any additional `NEXT_PUBLIC_*` variables introduced by later phases in the App Hosting environment alongside the App Check key.
+
 ## Firebase configuration files
 
 - `firebase.json` targets the DEV backend `rbp-dev-backend`.

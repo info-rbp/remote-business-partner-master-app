@@ -3,77 +3,339 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
+    // ========================================================================
+    // HELPER FUNCTIONS
+    // ========================================================================
+
+    function isAuthenticated() {
       return request.auth != null;
     }
 
     function memberDoc(orgId) {
-      return isSignedIn()
+      return request.auth != null
         ? get(/databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid))
         : null;
     }
 
-    function memberExists(orgId) {
-      let member = memberDoc(orgId);
-      return member != null && member.exists();
-    }
-
-    function memberIsActive(orgId) {
-      let member = memberDoc(orgId);
-      return member != null && member.exists() && member.data.status == 'active';
-    }
-
-    function orgRole(orgId) {
+    function memberRole(orgId) {
       let member = memberDoc(orgId);
       return member != null && member.exists() ? member.data.role : null;
     }
 
-    function hasRole(orgId, roles) {
-      let role = orgRole(orgId);
-      return memberIsActive(orgId) && roles.hasAny([role]);
+    function isAdmin(orgId) {
+      return memberRole(orgId) == 'admin';
     }
 
-    function isOrgMember(orgId) {
-      return memberIsActive(orgId);
+    function isStaff(orgId) {
+      let role = memberRole(orgId);
+      return role == 'admin' || role == 'staff';
     }
+
+    function isClient(orgId) {
+      return memberRole(orgId) == 'client';
+    }
+
+    function memberClientId(orgId) {
+      let member = memberDoc(orgId);
+      return member != null && member.exists() ? member.data.clientId : null;
+    }
+
+    function hasProjectAccess(orgId, projectId) {
+      let member = memberDoc(orgId);
+      if (member == null || !member.exists()) return false;
+      
+      let memberData = member.data;
+      return memberData.role == 'admin' 
+        || memberData.role == 'staff'
+        || (memberData.projectIds != null && projectId in memberData.projectIds);
+    }
+
+    // ========================================================================
+    // USER COLLECTION
+    // ========================================================================
+
+    match /users/{userId} {
+      // Users can read/update their own profile
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admins can read all users in their org
+      allow read: if isAuthenticated() && resource.data.orgId != null && isAdmin(resource.data.orgId);
+    }
+
+    // ========================================================================
+    // AUDIT LOGS (Read-only for admins)
+    // ========================================================================
+
+    match /auditLogs/{logId} {
+      allow read: if isAuthenticated() && resource.data.orgId != null && isAdmin(resource.data.orgId);
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // ========================================================================
+    // ORGANIZATION STRUCTURE
+    // ========================================================================
 
     match /orgs/{orgId} {
-      allow read: if isOrgMember(orgId);
-      allow create: if false; // org creation is server-side only
-      allow update, delete: if hasRole(orgId, ['owner', 'admin']);
+      // Org-level access: Staff can read, admins can write
+      allow read: if isAuthenticated() && isStaff(orgId);
+      allow write: if isAuthenticated() && isAdmin(orgId);
+
+      // ======================================================================
+      // MEMBERS
+      // ======================================================================
 
       match /members/{userId} {
-          allow read: if isOrgMember(orgId) || (isSignedIn() && request.auth.uid == userId);
-          allow create, update, delete: if hasRole(orgId, ['owner', 'admin']);
+        // Staff can read member list
+        allow read: if isAuthenticated() && isStaff(orgId);
+        
+        // Members can read their own record
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        
+        // Only admins can manage members
+        allow write: if isAuthenticated() && isAdmin(orgId);
       }
 
-        match /clients/{clientId} {
-          allow read, write: if isOrgMember(orgId);
-        }
+      // ======================================================================
+      // CRM ENTITIES
+      // ======================================================================
 
-        match /files/{fileId} {
-          allow create, read, update, delete: if isOrgMember(orgId);
-        }
-
-        match /proposals/{proposalId} {
-          allow read, write: if isOrgMember(orgId);
-        }
-
-        match /settings/{doc=**} {
-          allow read, write: if hasRole(orgId, ['owner', 'admin']);
-        }
-    }
-
-    match /proposalShares/{token} {
-      function notExpired() {
-        return resource != null && resource.data.expiresAt != null && resource.data.expiresAt > request.time;
+      // Leads
+      match /leads/{leadId} {
+        allow read, write: if isAuthenticated() && isStaff(orgId);
       }
 
-      allow get: if resource != null && notExpired() && resource.data.token == token;
-      allow create: if isSignedIn() && request.resource.data.orgId != null
-        && exists(/databases/$(database)/documents/orgs/$(request.resource.data.orgId)/members/$(request.auth.uid));
-      allow update, delete: if isSignedIn() && resource != null
-        && exists(/databases/$(database)/documents/orgs/$(resource.data.orgId)/members/$(request.auth.uid));
+      // Companies
+      match /companies/{companyId} {
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      // Contacts
+      match /contacts/{contactId} {
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      // Opportunities
+      match /opportunities/{opportunityId} {
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      // Activities
+      match /activities/{activityId} {
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      // ======================================================================
+      // PROPOSALS
+      // ======================================================================
+
+      match /proposals/{proposalId} {
+        // Public read access via share token
+        allow get: if resource.data.shareToken != null 
+          && resource.data.shareToken == request.query.get('token')
+          && resource.data.shareExpiry != null
+          && resource.data.shareExpiry > request.time;
+
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read their own proposals
+        allow read: if isAuthenticated() 
+          && isClient(orgId) 
+          && resource.data.clientId != null
+          && resource.data.clientId == memberClientId(orgId);
+          
+        // Clients can accept/decline their proposals
+        allow update: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.clientId == memberClientId(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'declinedAt', 'declineReason', 'updatedAt', 'viewedAt']);
+      }
+
+      // ======================================================================
+      // PROJECTS
+      // ======================================================================
+
+      match /projects/{projectId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read projects they have access to
+        allow read: if isAuthenticated() 
+          && isClient(orgId) 
+          && hasProjectAccess(orgId, projectId);
+
+        // Project milestones and deliverables
+        function canClientUpdateDeliverable() {
+          return isClient(orgId) 
+            && hasProjectAccess(orgId, projectId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'approvedAt', 'approvedBy', 'rejectedAt', 'rejectionReason', 'revisionCount']);
+        }
+
+        // Clients can approve/reject deliverables
+        allow update: if isAuthenticated() && canClientUpdateDeliverable();
+      }
+
+      // ======================================================================
+      // CHANGE REQUESTS
+      // ======================================================================
+
+      match /changeRequests/{requestId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can create and read change requests for their projects
+        allow create: if isAuthenticated()
+          && isClient(orgId)
+          && request.resource.data.projectId != null
+          && hasProjectAccess(orgId, request.resource.data.projectId)
+          && request.resource.data.requestedByType == 'client';
+
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.projectId != null
+          && hasProjectAccess(orgId, resource.data.projectId);
+      }
+
+      // ======================================================================
+      // RISKS
+      // ======================================================================
+
+      match /risks/{riskId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read risks for their projects
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.projectId != null
+          && hasProjectAccess(orgId, resource.data.projectId);
+      }
+
+      // ======================================================================
+      // DECISIONS
+      // ======================================================================
+
+      match /decisions/{decisionId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read decisions for their projects
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.projectId != null
+          && hasProjectAccess(orgId, resource.data.projectId);
+      }
+
+      // ======================================================================
+      // DOCUMENTS
+      // ======================================================================
+
+      match /files/{fileId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read documents with client visibility and matching clientId
+        function canClientReadFile() {
+          return isClient(orgId)
+            && resource != null
+            && resource.data.visibility == 'client'
+            && resource.data.clientId != null
+            && resource.data.clientId == memberClientId(orgId);
+        }
+
+        allow read: if isAuthenticated() && canClientReadFile();
+      }
+
+      // ======================================================================
+      // CLIENT REQUESTS
+      // ======================================================================
+
+      match /clientRequests/{requestId} {
+        // Staff have full access
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can create and manage their own requests
+        allow create: if isAuthenticated()
+          && isClient(orgId)
+          && request.resource.data.clientId == memberClientId(orgId)
+          && request.resource.data.projectId != null
+          && hasProjectAccess(orgId, request.resource.data.projectId);
+
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.clientId == memberClientId(orgId);
+
+        allow update: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.clientId == memberClientId(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'priority', 'updatedAt']);
+      }
+
+      // ======================================================================
+      // STATUS REPORTS
+      // ======================================================================
+
+      match /statusReports/{reportId} {
+        // Staff can read and write
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read reports for their projects
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.projectId != null
+          && hasProjectAccess(orgId, resource.data.projectId);
+      }
+
+      // ======================================================================
+      // KNOWLEDGE BASE
+      // ======================================================================
+
+      match /knowledge/{knowledgeId} {
+        // Staff can read and write
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      match /projectDebriefs/{debriefId} {
+        // Staff can read and write
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+      }
+
+      // ======================================================================
+      // PROOF / CASE STUDIES
+      // ======================================================================
+
+      match /proof/{proofId} {
+        // Staff can read and write
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Public can read published proof with public visibility
+        allow read: if resource.data.status == 'published' 
+          && resource.data.visibility == 'public';
+      }
+
+      match /reviewRequests/{requestId} {
+        // Staff can read and write
+        allow read, write: if isAuthenticated() && isStaff(orgId);
+
+        // Clients can read and respond to their review requests
+        allow read: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.clientId == memberClientId(orgId);
+
+        allow update: if isAuthenticated()
+          && isClient(orgId)
+          && resource.data.clientId == memberClientId(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rating', 'review', 'publicPermission', 'respondedAt', 'updatedAt']);
+      }
+
+      // ======================================================================
+      // SETTINGS
+      // ======================================================================
+
+      match /settings/{doc=**} {
+        allow read, write: if isAuthenticated() && isAdmin(orgId);
+      }
     }
   }
 }
